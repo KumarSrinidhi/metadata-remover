@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.text.Text?>
+
+<StackPane xmlns:fx="http://javafx.com/fxml"
+           fx:controller="com.exifcleaner.view.DropZoneController"
+           fx:id="dropZoneRoot"
+           styleClass="drop-zone"
+           prefHeight="400" minHeight="200">
+
+    <VBox alignment="CENTER" spacing="14">
+        <padding><Insets top="60" right="60" bottom="60" left="60"/></padding>
+
+        <!-- Upload icon (unicode arrow) -->
+        <Label fx:id="iconLabel" text="⬆" styleClass="drop-zone-icon"/>
+
+        <!-- Primary instruction -->
+        <Label text="Drop images or folders here" styleClass="drop-zone-label"/>
+
+        <!-- Secondary instruction -->
+        <Label text="or click to browse" styleClass="drop-zone-sublabel"/>
+
+        <!-- Supported formats hint -->
+        <Label text="Supports: JPEG · PNG · TIFF (detected by file header)"
+               styleClass="label-secondary"/>
+    </VBox>
+
+</StackPane>

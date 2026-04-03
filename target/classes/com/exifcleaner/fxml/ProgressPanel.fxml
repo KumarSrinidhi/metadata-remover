@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.exifcleaner.view.ProgressPanelController"
+      fx:id="progressPanelRoot"
+      styleClass="progress-panel"
+      spacing="6"
+      visible="false"
+      managed="false">
+
+    <padding><Insets top="10" right="16" bottom="10" left="16"/></padding>
+
+    <!-- Current file being processed -->
+    <HBox spacing="6" alignment="CENTER_LEFT">
+        <Label text="Processing:" styleClass="progress-label"/>
+        <Label fx:id="lblCurrentFile" text="" styleClass="progress-filename"/>
+    </HBox>
+
+    <!-- Progress bar -->
+    <ProgressBar fx:id="progressBar" progress="0.0" maxWidth="Infinity" prefHeight="8"/>
+
+    <!-- Files counter + estimated time -->
+    <HBox alignment="CENTER_LEFT" spacing="16">
+        <Label fx:id="lblFileCount"  text="0 / 0"   styleClass="progress-label"/>
+        <Label fx:id="lblTimeLeft"   text=""         styleClass="progress-label"/>
+    </HBox>
+
+</VBox>

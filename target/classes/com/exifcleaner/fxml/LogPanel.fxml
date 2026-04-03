@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.Insets?>
+
+<TitledPane xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.exifcleaner.view.LogPanelController"
+            fx:id="logPanelRoot"
+            text="Log"
+            expanded="false"
+            maxHeight="200">
+
+    <VBox spacing="4">
+        <!-- Buttons row -->
+        <HBox spacing="8" alignment="CENTER_RIGHT">
+            <padding><Insets top="4" right="6" bottom="2" left="6"/></padding>
+            <Button fx:id="btnCopyLog"   text="Copy Log" styleClass="btn-secondary"/>
+            <Button fx:id="btnClearLog"  text="Clear"    styleClass="btn-secondary"/>
+            <Button fx:id="btnExportLog" text="Export…"  styleClass="btn-secondary"/>
+        </HBox>
+
+        <!-- Monospaced scrollable log area -->
+        <TextArea fx:id="logArea"
+                  editable="false"
+                  wrapText="false"
+                  prefHeight="130"
+                  styleClass="log-area"/>
+    </VBox>
+
+</TitledPane>

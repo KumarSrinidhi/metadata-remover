@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.exifcleaner.view.OptionsPanelController"
+      styleClass="options-panel"
+      spacing="4">
+
+    <!-- Header -->
+    <Label text="⚙  Options" styleClass="app-title-label"/>
+
+    <Separator/>
+
+    <!-- Metadata section -->
+    <Label text="METADATA TO REMOVE" styleClass="options-section-title"/>
+
+    <CheckBox fx:id="chkExif"      text="EXIF Data">
+        <tooltip><Tooltip text="Camera settings, GPS coordinates, timestamps"/></tooltip>
+    </CheckBox>
+    <CheckBox fx:id="chkIptc"      text="IPTC Data">
+        <tooltip><Tooltip text="Author, copyright, keywords"/></tooltip>
+    </CheckBox>
+    <CheckBox fx:id="chkXmp"       text="XMP Data">
+        <tooltip><Tooltip text="Adobe and editing software metadata"/></tooltip>
+    </CheckBox>
+    <CheckBox fx:id="chkThumbnail" text="Embedded Thumbnail">
+        <tooltip><Tooltip text="Miniature preview stored inside the file"/></tooltip>
+    </CheckBox>
+
+    <Separator/>
+
+    <!-- Output location section -->
+    <Label text="OUTPUT LOCATION" styleClass="options-section-title"/>
+
+    <fx:define>
+        <ToggleGroup fx:id="outputToggleGroup"/>
+    </fx:define>
+
+    <RadioButton fx:id="radioSameFolder"  text="Save alongside original"
+                 toggleGroup="$outputToggleGroup">
+        <tooltip><Tooltip text="Adds '_cleaned' suffix before the extension"/></tooltip>
+    </RadioButton>
+    <RadioButton fx:id="radioCustomFolder" text="Save to custom folder"
+                 toggleGroup="$outputToggleGroup">
+        <tooltip><Tooltip text="All cleaned files go to the chosen folder"/></tooltip>
+    </RadioButton>
+
+    <!-- Folder picker (enabled when custom folder selected) -->
+    <VBox fx:id="customFolderBox" spacing="4" visible="false" managed="false">
+        <padding><Insets top="4"/></padding>
+        <TextField fx:id="txtCustomFolder" promptText="No folder selected"
+                   editable="false" maxWidth="Infinity"/>
+        <Button fx:id="btnPickFolder" text="Browse…" styleClass="btn-folder-picker"/>
+    </VBox>
+
+    <!-- Spacer -->
+    <Pane VBox.vgrow="ALWAYS"/>
+
+</VBox>

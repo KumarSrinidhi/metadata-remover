@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.exifcleaner.view.MainWindowController"
+            fx:id="rootPane"
+            minWidth="900" minHeight="650"
+            stylesheets="@../css/theme.css">
+
+    <!-- ─── LEFT: Options Sidebar ─────────────────────────────────────── -->
+    <left>
+        <fx:include fx:id="optionsPanel" source="OptionsPanel.fxml"/>
+    </left>
+
+    <!-- ─── CENTER: Drop Zone / File List (switched by controller) ─────── -->
+    <center>
+        <StackPane fx:id="centerStack">
+            <fx:include fx:id="dropZone" source="DropZone.fxml"/>
+            <fx:include fx:id="fileList"  source="FileList.fxml"/>
+        </StackPane>
+    </center>
+
+    <!-- ─── BOTTOM: Progress + Log + Action Bar ────────────────────────── -->
+    <bottom>
+        <VBox>
+            <!-- Progress panel (hidden when not processing) -->
+            <fx:include fx:id="progressPanel" source="ProgressPanel.fxml"/>
+
+            <!-- Log panel (collapsible TitledPane) -->
+            <fx:include fx:id="logPanel" source="LogPanel.fxml"/>
+
+            <!-- Action buttons -->
+            <HBox fx:id="actionBar" styleClass="action-bar"
+                  alignment="CENTER_RIGHT" spacing="10">
+                <padding><Insets top="10" right="16" bottom="10" left="16"/></padding>
+
+                <Button fx:id="btnClearAll"     text="Clear All"      styleClass="btn-secondary"/>
+                <Button fx:id="btnCancel"        text="Cancel"         styleClass="btn-cancel"/>
+                <Button fx:id="btnStartCleaning" text="▶  Start Cleaning" styleClass="btn-primary"/>
+            </HBox>
+        </VBox>
+    </bottom>
+
+</BorderPane>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.exifcleaner.view.FileListController"
+      fx:id="fileListRoot"
+      visible="false">
+
+    <!-- Header row -->
+    <HBox alignment="CENTER_LEFT" spacing="10"
+          style="-fx-background-color: #0f3460; -fx-padding: 6 12 6 12;">
+        <Label fx:id="headerLabel" text="Files: 0" styleClass="file-list-header"/>
+        <Pane HBox.hgrow="ALWAYS"/>
+        <Button fx:id="btnRemoveSelected" text="Remove Selected" styleClass="btn-secondary"/>
+    </HBox>
+
+    <!-- File table -->
+    <TableView fx:id="fileTable" VBox.vgrow="ALWAYS" styleClass="file-table">
+        <columns>
+            <!-- # index -->
+            <TableColumn fx:id="colIndex"    text="#"        minWidth="40"  maxWidth="55"  prefWidth="45"/>
+            <!-- Filename -->
+            <TableColumn fx:id="colFilename" text="Filename" minWidth="180" prefWidth="220"/>
+            <!-- Path -->
+            <TableColumn fx:id="colPath"     text="Path"     minWidth="200"/>
+            <!-- Format -->
+            <TableColumn fx:id="colFormat"   text="Format"   minWidth="60"  maxWidth="80"  prefWidth="70"/>
+            <!-- Status -->
+            <TableColumn fx:id="colStatus"   text="Status"   minWidth="90"  maxWidth="120" prefWidth="100"/>
+        </columns>
+        <contextMenu>
+            <ContextMenu fx:id="tableContextMenu">
+                <items>
+                    <MenuItem fx:id="menuRemove"       text="Remove from list"/>
+                    <MenuItem fx:id="menuOpenLocation" text="Open file location"/>
+                </items>
+            </ContextMenu>
+        </contextMenu>
+        <placeholder>
+            <Label text="No files loaded" styleClass="label-secondary"/>
+        </placeholder>
+    </TableView>
+
+</VBox>
