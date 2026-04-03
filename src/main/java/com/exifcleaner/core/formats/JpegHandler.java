@@ -37,7 +37,7 @@ public class JpegHandler implements FormatHandler {
     @Override
     public boolean supports(Path path) {
         try {
-            return "JPEG".equals(FileValidator.detect(path));
+            return FileValidator.detect(path) == FileValidator.ImageFormat.JPEG;
         } catch (Exception e) {
             return false;
         }

@@ -79,7 +79,7 @@ public class MainViewModel {
             .map(File::toPath)
             .collect(Collectors.toList());
 
-        List<FileEntry> entries = scannerService.scan(paths);
+        List<FileEntry> entries = scannerService.scan(paths, state);
         state.setLoadedFiles(entries);
         filesCounter.set("0 / " + entries.size());
         AppLogger.info("Files loaded: " + entries.size());
@@ -97,7 +97,7 @@ public class MainViewModel {
             .map(File::toPath)
             .collect(Collectors.toList());
 
-        List<FileEntry> newEntries = scannerService.scan(paths);
+        List<FileEntry> newEntries = scannerService.scan(paths, state);
 
         // Merge: rebuild list with existing + new (scanner deduplicates internally)
         List<FileEntry> combined = new java.util.ArrayList<>(state.getLoadedFilesUnmodifiable());
@@ -127,6 +127,10 @@ public class MainViewModel {
             int done  = state.getResults().size();
             int total = state.getLoadedFiles().size();
             filesCounter.set(done + " / " + total);
+            
+            for (String warning : result.warnings()) {
+                AppLogger.warn("[" + result.inputPath().getFileName() + "] " + warning);
+            }
         };
 
         activeTask = cleaningService.createCleaningTask(state, onStart, onComplete);
@@ -198,6 +202,18 @@ public class MainViewModel {
 
     /** @return removeThumbnail property */
     public BooleanProperty removeThumbnailProperty() { return state.removeThumbnailProperty(); }
+    
+    /** @return processStandardImages property */
+    public BooleanProperty processStandardImagesProperty() { return state.processStandardImagesProperty(); }
+
+    /** @return processHeic property */
+    public BooleanProperty processHeicProperty() { return state.processHeicProperty(); }
+
+    /** @return processPdf property */
+    public BooleanProperty processPdfProperty() { return state.processPdfProperty(); }
+
+    /** @return processRaw property */
+    public BooleanProperty processRawProperty() { return state.processRawProperty(); }
 
     /** @return isProcessing property */
     public BooleanProperty isProcessingProperty() { return state.isProcessingProperty(); }

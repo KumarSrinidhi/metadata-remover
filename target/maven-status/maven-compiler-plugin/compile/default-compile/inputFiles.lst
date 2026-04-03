@@ -7,6 +7,7 @@ C:\Users\Ivermectin\Downloads\Java\src\main\java\com\exifcleaner\App.java
 C:\Users\Ivermectin\Downloads\Java\src\main\java\com\exifcleaner\service\BatchScannerService.java
 C:\Users\Ivermectin\Downloads\Java\src\main\java\com\exifcleaner\view\LogPanelController.java
 C:\Users\Ivermectin\Downloads\Java\src\main\java\com\exifcleaner\view\ProgressPanelController.java
+C:\Users\Ivermectin\Downloads\Java\src\main\java\com\exifcleaner\core\formats\GifHandler.java
 C:\Users\Ivermectin\Downloads\Java\src\main\java\com\exifcleaner\view\DropZoneController.java
 C:\Users\Ivermectin\Downloads\Java\src\main\java\com\exifcleaner\core\CleaningEngine.java
 C:\Users\Ivermectin\Downloads\Java\src\main\java\com\exifcleaner\core\formats\TiffHandler.java
@@ -19,10 +20,15 @@ C:\Users\Ivermectin\Downloads\Java\src\main\java\com\exifcleaner\core\formats\Pn
 C:\Users\Ivermectin\Downloads\Java\src\main\java\com\exifcleaner\view\MainWindowController.java
 C:\Users\Ivermectin\Downloads\Java\src\main\java\com\exifcleaner\model\AppStateModel.java
 C:\Users\Ivermectin\Downloads\Java\src\main\java\com\exifcleaner\view\OptionsPanelController.java
+C:\Users\Ivermectin\Downloads\Java\src\main\java\com\exifcleaner\core\formats\HeicHandler.java
+C:\Users\Ivermectin\Downloads\Java\src\main\java\com\exifcleaner\core\formats\WebpHandler.java
+C:\Users\Ivermectin\Downloads\Java\src\main\java\com\exifcleaner\core\formats\PdfHandler.java
 C:\Users\Ivermectin\Downloads\Java\src\main\java\com\exifcleaner\utilities\errors\BatchProcessingException.java
 C:\Users\Ivermectin\Downloads\Java\src\main\java\com\exifcleaner\utilities\FileValidator.java
+C:\Users\Ivermectin\Downloads\Java\src\main\java\com\exifcleaner\core\formats\RawHandler.java
 C:\Users\Ivermectin\Downloads\Java\src\main\java\com\exifcleaner\model\FileEntry.java
 C:\Users\Ivermectin\Downloads\Java\src\main\java\com\exifcleaner\utilities\errors\MetadataRemovalException.java
 C:\Users\Ivermectin\Downloads\Java\src\main\java\com\exifcleaner\service\CleaningService.java
 C:\Users\Ivermectin\Downloads\Java\src\main\java\com\exifcleaner\core\formats\JpegHandler.java
+C:\Users\Ivermectin\Downloads\Java\src\main\java\com\exifcleaner\core\formats\BmpHandler.java
 C:\Users\Ivermectin\Downloads\Java\src\main\java\com\exifcleaner\AppConfig.java

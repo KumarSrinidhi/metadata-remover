@@ -58,7 +58,18 @@ public class App extends Application {
 
         // ── Step 4: Construct format handlers and CleaningEngine ─────────────
         CleaningEngine engine = new CleaningEngine(
-            List.of(new JpegHandler(), new PngHandler(), new TiffHandler()));
+            List.of(
+                new com.exifcleaner.core.formats.JpegHandler(),
+                new com.exifcleaner.core.formats.PngHandler(),
+                new com.exifcleaner.core.formats.WebpHandler(),
+                new com.exifcleaner.core.formats.HeicHandler(),
+                new com.exifcleaner.core.formats.BmpHandler(),
+                new com.exifcleaner.core.formats.GifHandler(),
+                new com.exifcleaner.core.formats.PdfHandler(),
+                new com.exifcleaner.core.formats.TiffHandler(),
+                new com.exifcleaner.core.formats.RawHandler()
+            )
+        );
 
         // ── Step 5: Construct services ────────────────────────────────────────
         BatchScannerService scannerService  = new BatchScannerService();

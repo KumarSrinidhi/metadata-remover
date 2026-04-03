@@ -43,6 +43,18 @@ public class AppStateModel {
     private final BooleanProperty removeThumbnail =
         new SimpleBooleanProperty(AppConfig.DEFAULT_REMOVE_THUMBNAIL);
 
+    private final BooleanProperty processStandardImages =
+        new SimpleBooleanProperty(true);
+
+    private final BooleanProperty processHeic =
+        new SimpleBooleanProperty(true);
+
+    private final BooleanProperty processPdf =
+        new SimpleBooleanProperty(true);
+
+    private final BooleanProperty processRaw =
+        new SimpleBooleanProperty(true);
+
     private final BooleanProperty isProcessing =
         new SimpleBooleanProperty(false);
 
@@ -143,6 +155,30 @@ public class AppStateModel {
     /** @param value true to enable thumbnail removal */
     public void setRemoveThumbnail(boolean value) { removeThumbnail.set(value); }
 
+    // ── processStandardImages ────────────────────────────────────────────────
+
+    public BooleanProperty processStandardImagesProperty() { return processStandardImages; }
+    public boolean isProcessStandardImages() { return processStandardImages.get(); }
+    public void setProcessStandardImages(boolean value) { processStandardImages.set(value); }
+
+    // ── processHeic ──────────────────────────────────────────────────────────
+
+    public BooleanProperty processHeicProperty() { return processHeic; }
+    public boolean isProcessHeic() { return processHeic.get(); }
+    public void setProcessHeic(boolean value) { processHeic.set(value); }
+
+    // ── processPdf ───────────────────────────────────────────────────────────
+
+    public BooleanProperty processPdfProperty() { return processPdf; }
+    public boolean isProcessPdf() { return processPdf.get(); }
+    public void setProcessPdf(boolean value) { processPdf.set(value); }
+
+    // ── processRaw ───────────────────────────────────────────────────────────
+
+    public BooleanProperty processRawProperty() { return processRaw; }
+    public boolean isProcessRaw() { return processRaw.get(); }
+    public void setProcessRaw(boolean value) { processRaw.set(value); }
+
     // ── isProcessing ─────────────────────────────────────────────────────────
 
     /** @return the isProcessing property */
@@ -177,6 +213,10 @@ public class AppStateModel {
         removeIptc.set(AppConfig.DEFAULT_REMOVE_IPTC);
         removeXmp.set(AppConfig.DEFAULT_REMOVE_XMP);
         removeThumbnail.set(AppConfig.DEFAULT_REMOVE_THUMBNAIL);
+        processStandardImages.set(true);
+        processHeic.set(true);
+        processPdf.set(true);
+        processRaw.set(true);
         isProcessing.set(false);
     }
 

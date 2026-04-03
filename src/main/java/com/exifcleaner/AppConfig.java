@@ -14,8 +14,22 @@ public final class AppConfig {
     private AppConfig() {}
 
     /** Supported image file extensions (lowercase, including leading dot). */
-    public static final Set<String> SUPPORTED_EXTENSIONS =
-        Set.of(".jpg", ".jpeg", ".png", ".tiff", ".tif");
+    public static final Set<String> SUPPORTED_EXTENSIONS = Set.of(
+        // Existing
+        ".jpg", ".jpeg", ".png", ".tiff", ".tif",
+        // New
+        ".pdf", ".webp", ".heic", ".heif",
+        ".bmp", ".gif",
+        ".cr2", ".cr3", ".nef", ".arw", ".dng"
+    );
+
+    // RAW formats need special warning treatment
+    public static final Set<String> RAW_EXTENSIONS = Set.of(
+        ".cr2", ".cr3", ".nef", ".arw", ".dng"
+    );
+
+    // Formats with no standard metadata (BMP)
+    public static final Set<String> NO_METADATA_FORMATS = Set.of(".bmp");
 
     /** Maximum number of files that can be queued in a single batch. */
     public static final int MAX_BATCH_SIZE = 10_000;

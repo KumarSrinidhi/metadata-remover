@@ -1,8 +1,0 @@
-com\exifcleaner\core\formats\PngHandlerTest.class
-com\exifcleaner\service\CleaningServiceTest.class
-com\exifcleaner\service\BatchScannerServiceTest.class
-com\exifcleaner\core\formats\TiffHandlerTest.class
-com\exifcleaner\utilities\AppLoggerTest.class
-com\exifcleaner\utilities\FileValidatorTest.class
-com\exifcleaner\core\CleaningEngineTest.class
-com\exifcleaner\core\formats\JpegHandlerTest.class

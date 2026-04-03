@@ -31,6 +31,24 @@
 
     <Separator/>
 
+    <!-- File types section -->
+    <Label text="FILE TYPES TO PROCESS" styleClass="options-section-title"/>
+
+    <CheckBox fx:id="chkStandardImages" text="Standard Images">
+        <tooltip><Tooltip text="JPEG, PNG, TIFF, WebP, BMP, GIF"/></tooltip>
+    </CheckBox>
+    <CheckBox fx:id="chkHeic" text="HEIC / HEIF Images">
+        <tooltip><Tooltip text="Apple High Efficiency Image Format"/></tooltip>
+    </CheckBox>
+    <CheckBox fx:id="chkPdf" text="PDF Documents">
+        <tooltip><Tooltip text="Portable Document Format"/></tooltip>
+    </CheckBox>
+    <CheckBox fx:id="chkRaw" text="RAW Camera Files">
+        <tooltip><Tooltip text="CR2, CR3, NEF, ARW, DNG — Best-effort stripping"/></tooltip>
+    </CheckBox>
+
+    <Separator/>
+
     <!-- Output location section -->
     <Label text="OUTPUT LOCATION" styleClass="options-section-title"/>
 

@@ -33,9 +33,10 @@ public class BatchScannerService {
      * Deduplicates by absolute path. Caps at {@link AppConfig#MAX_BATCH_SIZE}.
      *
      * @param inputPaths list of files and/or directories to scan
+     * @param state      the application state model containing file type filters
      * @return ordered, deduplicated list of valid {@link FileEntry} objects
      */
-    public List<FileEntry> scan(List<Path> inputPaths) {
+    public List<FileEntry> scan(List<Path> inputPaths, com.exifcleaner.model.AppStateModel state) {
         Set<Path> seen = new LinkedHashSet<>();
         List<FileEntry> entries = new ArrayList<>();
 
@@ -45,7 +46,7 @@ public class BatchScannerService {
                     + " files). Additional files ignored.");
                 break;
             }
-            walkPath(input, seen, entries);
+            walkPath(input, seen, entries, state);
         }
 
         AppLogger.info("Scan complete: " + entries.size() + " valid file(s) found");
@@ -55,14 +56,10 @@ public class BatchScannerService {
     /**
      * Walks a single path — if it is a directory, recurses into it;
      * if it is a file, validates and adds it.
-     *
-     * @param path    the path to walk
-     * @param seen    set of already-visited absolute paths for deduplication
-     * @param entries accumulating list of valid FileEntry objects
      */
-    private void walkPath(Path path, Set<Path> seen, List<FileEntry> entries) {
+    private void walkPath(Path path, Set<Path> seen, List<FileEntry> entries, com.exifcleaner.model.AppStateModel state) {
         if (Files.isRegularFile(path)) {
-            addIfValid(path, seen, entries);
+            addIfValid(path, seen, entries, state);
             return;
         }
 
@@ -78,7 +75,7 @@ public class BatchScannerService {
                     if (entries.size() >= AppConfig.MAX_BATCH_SIZE) {
                         return FileVisitResult.TERMINATE;
                     }
-                    addIfValid(file, seen, entries);
+                    addIfValid(file, seen, entries, state);
                     return FileVisitResult.CONTINUE;
                 }
 
@@ -94,26 +91,48 @@ public class BatchScannerService {
     }
 
     /**
-     * Validates a single file by extension and magic bytes, then adds it if it passes.
-     *
-     * @param file    the candidate file
-     * @param seen    deduplication set
-     * @param entries accumulating output list
+     * Validates a single file by extension and magic bytes, then adds it if it passes and is allowed by filters.
      */
-    private void addIfValid(Path file, Set<Path> seen, List<FileEntry> entries) {
+    private void addIfValid(Path file, Set<Path> seen, List<FileEntry> entries, com.exifcleaner.model.AppStateModel state) {
         Path absolute = file.toAbsolutePath().normalize();
 
         if (!seen.add(absolute)) {
             return; // Duplicate — skip silently
         }
 
-        if (!isValidImageFile(file)) {
+        if (!isValidExtension(file)) {
             return;
         }
 
         try {
-            String format = FileValidator.detect(file);
-            entries.add(new FileEntry(absolute, format, FileStatus.PENDING));
+            FileValidator.ImageFormat format = FileValidator.detect(file);
+            
+            // Check filters
+            boolean allowed = switch (format) {
+                case JPEG, PNG, TIFF, WEBP, BMP, GIF -> state.isProcessStandardImages();
+                case HEIC -> state.isProcessHeic();
+                case PDF -> state.isProcessPdf();
+                case RAW_TIFF, RAW_CR3 -> state.isProcessRaw();
+            };
+            
+            if (!allowed) {
+                return;
+            }
+
+            String displayFormat = switch (format) {
+                case JPEG -> "JPEG";
+                case PNG -> "PNG";
+                case TIFF -> "TIFF";
+                case WEBP -> "WebP";
+                case HEIC -> "HEIC";
+                case PDF -> "PDF";
+                case BMP -> "BMP";
+                case GIF -> "GIF";
+                case RAW_TIFF -> "RAW \u26A0"; // Warning symbol
+                case RAW_CR3 -> "CR3 \u26A0";   // Warning symbol
+            };
+
+            entries.add(new FileEntry(absolute, displayFormat, FileStatus.PENDING));
         } catch (UnsupportedFormatException | IOException e) {
             AppLogger.warn("Skipped (detection failed): " + file.getFileName()
                 + " — " + e.getMessage());
@@ -121,24 +140,11 @@ public class BatchScannerService {
     }
 
     /**
-     * Double-validates a file candidate: extension check (fast) then magic byte check (authoritative).
-     * A file with a supported extension but wrong magic bytes (e.g. a ZIP renamed to .jpg) is rejected.
-     *
-     * @param path the file to validate
-     * @return true if the file passes both checks
+     * Fast extension check. Note that FileValidator.detect gives the authoritative answer.
      */
-    private boolean isValidImageFile(Path path) {
-        // Step 1: Extension check (fast, no I/O)
+    private boolean isValidExtension(Path path) {
         String name = path.getFileName().toString().toLowerCase();
-        boolean extOk = AppConfig.SUPPORTED_EXTENSIONS.stream().anyMatch(name::endsWith);
-        if (!extOk) return false;
-
-        // Step 2: Magic byte check (authoritative)
-        try {
-            return FileValidator.detect(path) != null;
-        } catch (UnsupportedFormatException | IOException e) {
-            AppLogger.warn("Skipped (invalid header): " + path);
-            return false;
-        }
+        return AppConfig.SUPPORTED_EXTENSIONS.stream().anyMatch(name::endsWith) ||
+               AppConfig.RAW_EXTENSIONS.stream().anyMatch(name::endsWith);
     }
 }

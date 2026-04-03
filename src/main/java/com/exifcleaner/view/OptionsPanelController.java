@@ -26,6 +26,11 @@ public class OptionsPanelController {
     @FXML private CheckBox chkXmp;
     @FXML private CheckBox chkThumbnail;
 
+    @FXML private CheckBox chkStandardImages;
+    @FXML private CheckBox chkHeic;
+    @FXML private CheckBox chkPdf;
+    @FXML private CheckBox chkRaw;
+
     @FXML private RadioButton radioSameFolder;
     @FXML private RadioButton radioCustomFolder;
     @FXML private ToggleGroup outputToggleGroup;
@@ -55,6 +60,11 @@ public class OptionsPanelController {
         chkIptc.selectedProperty().bindBidirectional(viewModel.removeIptcProperty());
         chkXmp.selectedProperty().bindBidirectional(viewModel.removeXmpProperty());
         chkThumbnail.selectedProperty().bindBidirectional(viewModel.removeThumbnailProperty());
+
+        chkStandardImages.selectedProperty().bindBidirectional(viewModel.processStandardImagesProperty());
+        chkHeic.selectedProperty().bindBidirectional(viewModel.processHeicProperty());
+        chkPdf.selectedProperty().bindBidirectional(viewModel.processPdfProperty());
+        chkRaw.selectedProperty().bindBidirectional(viewModel.processRawProperty());
     }
 
     /**

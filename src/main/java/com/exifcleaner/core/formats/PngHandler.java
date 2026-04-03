@@ -50,7 +50,7 @@ public class PngHandler implements FormatHandler {
     @Override
     public boolean supports(Path path) {
         try {
-            return "PNG".equals(FileValidator.detect(path));
+            return FileValidator.detect(path) == FileValidator.ImageFormat.PNG;
         } catch (Exception e) {
             return false;
         }

@@ -47,7 +47,7 @@ public class TiffHandler implements FormatHandler {
     @Override
     public boolean supports(Path path) {
         try {
-            return "TIFF".equals(FileValidator.detect(path));
+            return FileValidator.detect(path) == FileValidator.ImageFormat.TIFF;
         } catch (Exception e) {
             return false;
         }

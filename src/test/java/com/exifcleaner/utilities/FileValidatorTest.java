@@ -24,7 +24,7 @@ class FileValidatorTest {
     void detect_jpegByHeader_returnsJpeg() throws Exception {
         Path file = createFileWithBytes("test.jpg",
             new byte[]{ (byte)0xFF, (byte)0xD8, (byte)0xFF, (byte)0xE0, 0, 0, 0, 0, 0, 0, 0, 0 });
-        assertEquals("JPEG", FileValidator.detect(file));
+        assertEquals(FileValidator.ImageFormat.JPEG, FileValidator.detect(file));
     }
 
     @Test
@@ -32,21 +32,28 @@ class FileValidatorTest {
         Path file = createFileWithBytes("test.png",
             new byte[]{ (byte)0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
                         0, 0, 0, 0 });
-        assertEquals("PNG", FileValidator.detect(file));
+        assertEquals(FileValidator.ImageFormat.PNG, FileValidator.detect(file));
     }
 
     @Test
     void detect_tiffLEByHeader_returnsTiff() throws Exception {
         Path file = createFileWithBytes("test.tiff",
             new byte[]{ 0x49, 0x49, 0x2A, 0x00, 0, 0, 0, 0, 0, 0, 0, 0 });
-        assertEquals("TIFF", FileValidator.detect(file));
+        assertEquals(FileValidator.ImageFormat.TIFF, FileValidator.detect(file));
     }
 
     @Test
     void detect_tiffBEByHeader_returnsTiff() throws Exception {
         Path file = createFileWithBytes("test.tif",
             new byte[]{ 0x4D, 0x4D, 0x00, 0x2A, 0, 0, 0, 0, 0, 0, 0, 0 });
-        assertEquals("TIFF", FileValidator.detect(file));
+        assertEquals(FileValidator.ImageFormat.TIFF, FileValidator.detect(file));
+    }
+
+    @Test
+    void detect_pdfByHeader_returnsPdf() throws Exception {
+        Path file = createFileWithBytes("test.pdf",
+            new byte[]{ 0x25, 0x50, 0x44, 0x46, 0, 0, 0, 0, 0, 0, 0, 0 });
+        assertEquals(FileValidator.ImageFormat.PDF, FileValidator.detect(file));
     }
 
     // ── Header beats extension ────────────────────────────────────────────
@@ -56,14 +63,14 @@ class FileValidatorTest {
         // File has JPEG magic bytes but .png extension — header wins
         Path file = createFileWithBytes("sneaky.png",
             new byte[]{ (byte)0xFF, (byte)0xD8, (byte)0xFF, (byte)0xE1, 0, 0, 0, 0, 0, 0, 0, 0 });
-        assertEquals("JPEG", FileValidator.detect(file));
+        assertEquals(FileValidator.ImageFormat.JPEG, FileValidator.detect(file));
     }
 
     @Test
     void detect_renameJpegAsTiff_stillDetectsJpeg() throws Exception {
         Path file = createFileWithBytes("photo.tiff",
             new byte[]{ (byte)0xFF, (byte)0xD8, (byte)0xFF, (byte)0xE0, 0, 0, 0, 0, 0, 0, 0, 0 });
-        assertEquals("JPEG", FileValidator.detect(file));
+        assertEquals(FileValidator.ImageFormat.JPEG, FileValidator.detect(file));
     }
 
     // ── Error cases ───────────────────────────────────────────────────────
