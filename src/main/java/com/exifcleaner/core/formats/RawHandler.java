@@ -27,6 +27,8 @@ import java.util.Map;
  */
 public class RawHandler implements FormatHandler {
 
+    private static final long MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
+
     private final TiffHandler tiffHandler = new TiffHandler();
 
     /** {@inheritDoc} */
@@ -54,6 +56,10 @@ public class RawHandler implements FormatHandler {
 
             if (format == FileValidator.ImageFormat.RAW_CR3) {
                 // CR3 is based on ISOBMFF. Simply fallback to copy with warning.
+                long inputSize = Files.size(inputPath);
+                if (inputSize > MAX_FILE_SIZE) {
+                    throw new IOException("File too large: " + inputSize + " bytes (max: " + MAX_FILE_SIZE + ")");
+                }
                 long startMs = System.currentTimeMillis();
                 Files.copy(inputPath, outputPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 
@@ -67,6 +73,10 @@ public class RawHandler implements FormatHandler {
                     0, System.currentTimeMillis() - startMs, warnings, null);
             } else {
                 // Delegate to TiffHandler
+                long inputSize = Files.size(inputPath);
+                if (inputSize > MAX_FILE_SIZE) {
+                    throw new IOException("File too large: " + inputSize + " bytes (max: " + MAX_FILE_SIZE + ")");
+                }
                 ProcessResult tiffResult = tiffHandler.clean(inputPath, outputPath, options);
                 
                 // Add the RAW warning to the result
@@ -74,7 +84,7 @@ public class RawHandler implements FormatHandler {
                 return tiffResult;
             }
 
-        } catch (Exception e) {
+        } catch (UnsupportedFormatException | IOException e) {
             AppLogger.error("Failed to process RAW: " + inputPath.getFileName(), e);
             throw new MetadataRemovalException(
                 "Failed to process RAW: " + inputPath.getFileName() + ": " + e.getMessage(), e);

@@ -31,6 +31,8 @@ import java.util.Map;
  */
 public class PdfHandler implements FormatHandler {
 
+    private static final long MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
+
     /** {@inheritDoc} */
     @Override
     public boolean supports(Path path) {
@@ -55,6 +57,9 @@ public class PdfHandler implements FormatHandler {
 
         try {
             long inputSize = Files.size(inputPath);
+            if (inputSize > MAX_FILE_SIZE) {
+                throw new IOException("File too large: " + inputSize + " bytes (max: " + MAX_FILE_SIZE + ")");
+            }
             
             try (PDDocument document = Loader.loadPDF(inputPath.toFile())) {
                 boolean modified = false;
@@ -74,10 +79,12 @@ public class PdfHandler implements FormatHandler {
                         modified = true;
                     }
 
-                    PDMetadata metadata = document.getDocumentCatalog().getMetadata();
-                    if (metadata != null) {
-                        document.getDocumentCatalog().setMetadata(null);
-                        modified = true;
+                    if (document.getDocumentCatalog() != null) {
+                        PDMetadata metadata = document.getDocumentCatalog().getMetadata();
+                        if (metadata != null) {
+                            document.getDocumentCatalog().setMetadata(null);
+                            modified = true;
+                        }
                     }
                 }
 

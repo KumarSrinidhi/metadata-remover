@@ -12,11 +12,6 @@ import com.exifcleaner.utilities.AppLogger;
 import com.exifcleaner.utilities.FileValidator;
 import com.exifcleaner.utilities.errors.MetadataRemovalException;
 
-import org.apache.commons.imaging.ImageReadException;
-import org.apache.commons.imaging.ImageWriteException;
-import org.apache.commons.imaging.Imaging;
-
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,6 +25,8 @@ import java.util.Map;
  * Utilizes Apache Commons Imaging for modification and fallback behavior warning.
  */
 public class HeicHandler implements FormatHandler {
+
+    private static final long MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
     /** {@inheritDoc} */
     @Override
@@ -55,23 +52,22 @@ public class HeicHandler implements FormatHandler {
 
         try {
             long inputSize = Files.size(inputPath);
-            File inputFile = inputPath.toFile();
-            File outputFile = outputPath.toFile();
+            if (inputSize > MAX_FILE_SIZE) {
+                throw new IOException("File too large: " + inputSize + " bytes (max: " + MAX_FILE_SIZE + ")");
+            }
 
-            // Attempt to write using Commons Imaging
-            // NOTE: HEIC write support is extremely experimental/unsupported heavily in Commons Imaging 1.0-alpha3.
-            // We use a best-effort approach with a required fallback warning.
-            try {
-                // Warning added explicitly due to nature of HEIC write support in current Java ecosystem
-                warnings.add("HEIC standard metadata removal is best-effort. Writing HEIC may fail or be unsupported.");
-                
-                // Currently commons-imaging does not support HEIC writing natively out of the box in alpha3
-                // We fallback to simple copying for safety and logging a warning.
-                throw new ImageWriteException("HEIC writing is unsupported by Apache Commons Imaging 1.0-alpha3");
+            boolean supported = false;
 
-            } catch (ImageWriteException | RuntimeException e) {
+            // HEIC writing is not fully supported in Apache Commons Imaging 1.0-alpha3
+            // Check if we can attempt writing or must fall back
+            if (options.removeExif() || options.removeXmp()) {
+                warnings.add("HEIC standard metadata removal is best-effort.");
+                supported = false;
+            }
+
+            if (!supported) {
                 AppLogger.warn("Fallback: HEIC modification not fully supported. Copying exact original: " + inputPath.getFileName());
-                warnings.add("HEIC modification failed (" + e.getMessage() + "), original file copied.");
+                warnings.add("HEIC modification not supported, original file copied.");
                 Files.copy(inputPath, outputPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             }
 

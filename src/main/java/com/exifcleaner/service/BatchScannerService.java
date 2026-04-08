@@ -174,10 +174,10 @@ public class BatchScannerService {
     }
 
     /**
-     * Fast extension check. Note that FileValidator.detect gives the authoritative answer.
+     * Fast extension check (case-insensitive). Note that FileValidator.detect gives the authoritative answer.
      */
     private boolean isValidExtension(Path path) {
-        String name = path.getFileName().toString().toLowerCase();
+        String name = path.getFileName().toString().toLowerCase(java.util.Locale.ROOT);
         return AppConfig.SUPPORTED_EXTENSIONS.stream().anyMatch(name::endsWith);
     }
 }
