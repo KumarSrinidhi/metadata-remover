@@ -1,6 +1,7 @@
 package com.exifcleaner.service;
 
 import com.exifcleaner.AppConfig;
+import com.exifcleaner.model.AppStateModel;
 import com.exifcleaner.model.FileEntry;
 import com.exifcleaner.model.FileStatus;
 import com.exifcleaner.utilities.AppLogger;
@@ -36,7 +37,7 @@ public class BatchScannerService {
      * @param state      the application state model containing file type filters
      * @return ordered, deduplicated list of valid {@link FileEntry} objects
      */
-    public List<FileEntry> scan(List<Path> inputPaths, com.exifcleaner.model.AppStateModel state) {
+    public List<FileEntry> scan(List<Path> inputPaths, AppStateModel state) {
         Set<Path> seen = new LinkedHashSet<>();
         List<FileEntry> entries = new ArrayList<>();
 
@@ -57,7 +58,7 @@ public class BatchScannerService {
      * Walks a single path — if it is a directory, recurses into it;
      * if it is a file, validates and adds it.
      */
-    private void walkPath(Path path, Set<Path> seen, List<FileEntry> entries, com.exifcleaner.model.AppStateModel state) {
+    private void walkPath(Path path, Set<Path> seen, List<FileEntry> entries, AppStateModel state) {
         if (Files.isRegularFile(path)) {
             addIfValid(path, seen, entries, state);
             return;
@@ -70,6 +71,13 @@ public class BatchScannerService {
 
         try {
             Files.walkFileTree(path, new SimpleFileVisitor<>() {
+                /**
+                 * Visits a regular file during recursive scan.
+                 *
+                 * @param file discovered file path
+                 * @param attrs basic file attributes
+                 * @return continue or terminate based on batch size limit
+                 */
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
                     if (entries.size() >= AppConfig.MAX_BATCH_SIZE) {
@@ -79,6 +87,13 @@ public class BatchScannerService {
                     return FileVisitResult.CONTINUE;
                 }
 
+                /**
+                 * Handles failures while visiting a file and continues scanning.
+                 *
+                 * @param file file that could not be read
+                 * @param exc encountered I/O exception
+                 * @return always continue to avoid aborting the whole scan
+                 */
                 @Override
                 public FileVisitResult visitFileFailed(Path file, IOException exc) {
                     AppLogger.warn("Cannot access file: " + file + " — " + exc.getMessage());
@@ -93,7 +108,7 @@ public class BatchScannerService {
     /**
      * Validates a single file by extension and magic bytes, then adds it if it passes and is allowed by filters.
      */
-    private void addIfValid(Path file, Set<Path> seen, List<FileEntry> entries, com.exifcleaner.model.AppStateModel state) {
+    private void addIfValid(Path file, Set<Path> seen, List<FileEntry> entries, AppStateModel state) {
         Path absolute = file.toAbsolutePath().normalize();
 
         if (!seen.add(absolute)) {
@@ -106,31 +121,13 @@ public class BatchScannerService {
 
         try {
             FileValidator.ImageFormat format = FileValidator.detect(file);
-            
-            // Check filters
-            boolean allowed = switch (format) {
-                case JPEG, PNG, TIFF, WEBP, BMP, GIF -> state.isProcessStandardImages();
-                case HEIC -> state.isProcessHeic();
-                case PDF -> state.isProcessPdf();
-                case RAW_TIFF, RAW_CR3 -> state.isProcessRaw();
-            };
-            
+
+            boolean allowed = isAllowedByFilters(format, state);
             if (!allowed) {
                 return;
             }
 
-            String displayFormat = switch (format) {
-                case JPEG -> "JPEG";
-                case PNG -> "PNG";
-                case TIFF -> "TIFF";
-                case WEBP -> "WebP";
-                case HEIC -> "HEIC";
-                case PDF -> "PDF";
-                case BMP -> "BMP";
-                case GIF -> "GIF";
-                case RAW_TIFF -> "RAW \u26A0"; // Warning symbol
-                case RAW_CR3 -> "CR3 \u26A0";   // Warning symbol
-            };
+            String displayFormat = toDisplayFormat(format);
 
             entries.add(new FileEntry(absolute, displayFormat, FileStatus.PENDING));
         } catch (UnsupportedFormatException | IOException e) {
@@ -140,11 +137,47 @@ public class BatchScannerService {
     }
 
     /**
+     * Applies current UI filter switches to a detected format.
+     *
+     * @param format detected file format
+     * @param state application state model with filter toggles
+     * @return true if the format is allowed under current filters
+     */
+    private boolean isAllowedByFilters(FileValidator.ImageFormat format, AppStateModel state) {
+        return switch (format) {
+            case JPEG, PNG, TIFF, WEBP, BMP, GIF -> state.isProcessStandardImages();
+            case HEIC -> state.isProcessHeic();
+            case PDF -> state.isProcessPdf();
+            case RAW_TIFF, RAW_CR3 -> state.isProcessRaw();
+        };
+    }
+
+    /**
+     * Maps detected format values to their user-facing label in the file table.
+     *
+     * @param format detected file format
+     * @return display label used in {@link FileEntry#format()}
+     */
+    private String toDisplayFormat(FileValidator.ImageFormat format) {
+        return switch (format) {
+            case JPEG -> "JPEG";
+            case PNG -> "PNG";
+            case TIFF -> "TIFF";
+            case WEBP -> "WebP";
+            case HEIC -> "HEIC";
+            case PDF -> "PDF";
+            case BMP -> "BMP";
+            case GIF -> "GIF";
+            case RAW_TIFF -> "RAW \u26A0";
+            case RAW_CR3 -> "CR3 \u26A0";
+        };
+    }
+
+    /**
      * Fast extension check. Note that FileValidator.detect gives the authoritative answer.
      */
     private boolean isValidExtension(Path path) {
         String name = path.getFileName().toString().toLowerCase();
-        return AppConfig.SUPPORTED_EXTENSIONS.stream().anyMatch(name::endsWith) ||
-               AppConfig.RAW_EXTENSIONS.stream().anyMatch(name::endsWith);
+        return AppConfig.SUPPORTED_EXTENSIONS.stream().anyMatch(name::endsWith);
     }
 }

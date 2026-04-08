@@ -1,119 +1,39 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
+# Maven / Java build output
+/target/
+*.class
 
-# C extensions
-*.so
+# Packaged artifacts
+*.jar
+*.war
+*.ear
 
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-pip-wheel-metadata/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# Maven build artifacts
-target/
+# Maven metadata files
 pom.xml.tag
 pom.xml.releaseBackup
 pom.xml.versionsBackup
 pom.xml.next
 release.properties
-versions.properties
 dependency-reduced-pom.xml
-.flattened-pom.xml
-*.jar
-*.war
-*.ear
-*.zip
-*.tar.gz
-*.rar
 
-# IDE configuration files
+# Logs
+*.log
+logs/
+run_log.txt
+
+# IDE files
 .idea/
 .vscode/
 *.iml
-*.iws
-*.ipr
-.settings/
-.classpath
 .project
-.factorypath
+.classpath
+.settings/
 
-# OS-specific files
+# OS files
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
 desktop.ini
 
-# Build tool caches
-.gradle/
-.m2/
-.mvn/
-
-# Test coverage
-.coverage
-htmlcov/
-.pytest_cache/
-coverage.xml
-*.cover
-*.lcov
-
-# IDE temporary files
-*.swp
-*.swo
-*~
-.temp/
-.tmp/
-
-# Log files
-*.log
-logs/
-test-output/
-
-# Output directories
-out/
-output/
-outputs/
-
-# Temporary files
-temp/
-tmp/
+# Temp files
 *.tmp
 *.bak
-
-# Database files
-*.db
-*.sqlite
-*.sqlite3
-
-# Environment files
-.env
-.env.local
-.env.*.local
-
-# Application-specific
-*.properties
-config/local/
-
-# Run logs
-run_log.txt
+*~

@@ -19,6 +19,7 @@ public final class FileValidator {
     /** Utility class — no instantiation. */
     private FileValidator() {}
 
+    /** Supported image/document formats detected from magic bytes. */
     public enum ImageFormat {
         JPEG, PNG, TIFF, WEBP, HEIC, PDF, BMP, GIF, RAW_TIFF, RAW_CR3
     }
@@ -77,16 +78,34 @@ public final class FileValidator {
         }
     }
 
+    /**
+     * Returns whether the header matches the JPEG signature (FF D8 FF).
+     *
+     * @param header file header bytes
+     * @return true if the header is JPEG
+     */
     public static boolean isJpeg(byte[] header) {
         return header.length >= 3 && (header[0] & 0xFF) == 0xFF && (header[1] & 0xFF) == 0xD8 && (header[2] & 0xFF) == 0xFF;
     }
 
+    /**
+     * Returns whether the header matches the PNG signature.
+     *
+     * @param header file header bytes
+     * @return true if the header is PNG
+     */
     public static boolean isPng(byte[] header) {
         return header.length >= 8 && (header[0] & 0xFF) == 0x89 && (header[1] & 0xFF) == 0x50 &&
                (header[2] & 0xFF) == 0x4E && (header[3] & 0xFF) == 0x47 && (header[4] & 0xFF) == 0x0D &&
                (header[5] & 0xFF) == 0x0A && (header[6] & 0xFF) == 0x1A && (header[7] & 0xFF) == 0x0A;
     }
 
+    /**
+     * Returns whether the header matches little-endian or big-endian TIFF signatures.
+     *
+     * @param header file header bytes
+     * @return true if the header is TIFF
+     */
     public static boolean isTiff(byte[] header) {
         if (header.length < 4) return false;
         boolean le = (header[0] & 0xFF) == 0x49 && (header[1] & 0xFF) == 0x49 && (header[2] & 0xFF) == 0x2A && (header[3] & 0xFF) == 0x00;
@@ -94,16 +113,34 @@ public final class FileValidator {
         return le || be;
     }
 
+    /**
+     * Returns whether the header matches the PDF signature (%PDF).
+     *
+     * @param header file header bytes
+     * @return true if the header is PDF
+     */
     public static boolean isPdf(byte[] header) {
         return header.length >= 4 && (header[0] == 0x25) && (header[1] == 0x50) && (header[2] == 0x44) && (header[3] == 0x46);
     }
 
+    /**
+     * Returns whether the header matches RIFF....WEBP signature bytes.
+     *
+     * @param header file header bytes
+     * @return true if the header is WebP
+     */
     public static boolean isWebp(byte[] header) {
         return header.length >= 12 &&
                (header[0] == 0x52) && (header[1] == 0x49) && (header[2] == 0x46) && (header[3] == 0x46) && // RIFF
                (header[8] == 0x57) && (header[9] == 0x45) && (header[10] == 0x42) && (header[11] == 0x50); // WEBP
     }
 
+    /**
+     * Returns whether the header appears to be an ISO BMFF container with a HEIC/HEIF brand.
+     *
+     * @param header file header bytes
+     * @return true if the header is HEIC/HEIF compatible
+     */
     public static boolean isHeic(byte[] header) {
         if (header.length < 12) return false;
         if (!(header[4] == 0x66 && header[5] == 0x74 && header[6] == 0x79 && header[7] == 0x70)) return false; // ftyp
@@ -111,10 +148,22 @@ public final class FileValidator {
         return brand.equals("heic") || brand.equals("heix") || brand.equals("hevc") || brand.equals("mif1") || brand.equals("msf1");
     }
 
+    /**
+     * Returns whether the header matches BMP signature bytes (BM).
+     *
+     * @param header file header bytes
+     * @return true if the header is BMP
+     */
     public static boolean isBmp(byte[] header) {
         return header.length >= 2 && (header[0] == 0x42) && (header[1] == 0x4D); // BM
     }
 
+    /**
+     * Returns whether the header matches GIF signature bytes (GIF8).
+     *
+     * @param header file header bytes
+     * @return true if the header is GIF
+     */
     public static boolean isGif(byte[] header) {
         return header.length >= 4 && (header[0] == 0x47) && (header[1] == 0x49) && (header[2] == 0x46) && (header[3] == 0x38); // GIF8
     }

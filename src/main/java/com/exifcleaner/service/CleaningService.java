@@ -54,6 +54,11 @@ public class CleaningService {
         List<FileEntry> files = new ArrayList<>(state.getLoadedFilesUnmodifiable());
 
         return new Task<>() {
+            /**
+             * Executes the batch cleaning loop on a background thread.
+             *
+             * @return ordered processing results for all attempted files
+             */
             @Override
             protected List<ProcessResult> call() {
                 List<ProcessResult> results = new ArrayList<>();

@@ -34,6 +34,7 @@ public class JpegHandler implements FormatHandler {
     private static final int MARKER_PREFIX = 0xFF;
     private static final int SOI_MARKER    = 0xD8;
 
+    /** {@inheritDoc} */
     @Override
     public boolean supports(Path path) {
         try {

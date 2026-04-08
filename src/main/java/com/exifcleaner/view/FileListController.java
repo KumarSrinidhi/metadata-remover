@@ -105,6 +105,12 @@ public class FileListController {
      */
     private void applyStatusCellFactory() {
         colStatus.setCellFactory(col -> new TableCell<>() {
+            /**
+             * Updates the visual status badge for a table cell.
+             *
+             * @param status file processing status for the row
+             * @param empty whether this cell currently represents an empty row
+             */
             @Override
             protected void updateItem(FileStatus status, boolean empty) {
                 super.updateItem(status, empty);

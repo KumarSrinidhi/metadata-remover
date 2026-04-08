@@ -31,6 +31,7 @@ import java.util.Map;
  */
 public class PdfHandler implements FormatHandler {
 
+    /** {@inheritDoc} */
     @Override
     public boolean supports(Path path) {
         try {

@@ -27,6 +27,7 @@ import java.util.Map;
  */
 public class GifHandler implements FormatHandler {
 
+    /** {@inheritDoc} */
     @Override
     public boolean supports(Path path) {
         try {
@@ -181,6 +182,10 @@ public class GifHandler implements FormatHandler {
         return copySubBlocks(input, pos + 2, out);
     }
 
+    /**
+     * {@inheritDoc}
+     * Uses metadata-extractor in read-only mode to build a display summary.
+     */
     @Override
     public Map<String, String> getMetadataSummary(Path path) {
         Map<String, String> summary = new LinkedHashMap<>();

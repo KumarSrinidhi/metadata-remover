@@ -29,6 +29,7 @@ import java.util.Map;
  */
 public class WebpHandler implements FormatHandler {
 
+    /** {@inheritDoc} */
     @Override
     public boolean supports(Path path) {
         try {
@@ -176,6 +177,10 @@ public class WebpHandler implements FormatHandler {
         return finalOut.toByteArray();
     }
 
+    /**
+     * {@inheritDoc}
+     * Uses metadata-extractor in read-only mode to build a display summary.
+     */
     @Override
     public Map<String, String> getMetadataSummary(Path path) {
         Map<String, String> summary = new LinkedHashMap<>();

@@ -47,6 +47,7 @@ public class PngHandler implements FormatHandler {
     /** Length of a chunk's length field. */
     private static final int LENGTH_FIELD = 4;
 
+    /** {@inheritDoc} */
     @Override
     public boolean supports(Path path) {
         try {

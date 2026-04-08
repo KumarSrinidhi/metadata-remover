@@ -44,6 +44,7 @@ public class TiffHandler implements FormatHandler {
         Set.of("TIFFTAG_EXIFIFD", "TIFFTAG_IPTC", "TIFFTAG_XMP",
                "ExifIFD", "IPTC", "XMP Data", "GPS");
 
+    /** {@inheritDoc} */
     @Override
     public boolean supports(Path path) {
         try {

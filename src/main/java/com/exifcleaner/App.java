@@ -1,9 +1,16 @@
 package com.exifcleaner;
 
 import com.exifcleaner.core.CleaningEngine;
+import com.exifcleaner.core.formats.BmpHandler;
+import com.exifcleaner.core.formats.FormatHandler;
+import com.exifcleaner.core.formats.GifHandler;
+import com.exifcleaner.core.formats.HeicHandler;
 import com.exifcleaner.core.formats.JpegHandler;
+import com.exifcleaner.core.formats.PdfHandler;
 import com.exifcleaner.core.formats.PngHandler;
+import com.exifcleaner.core.formats.RawHandler;
 import com.exifcleaner.core.formats.TiffHandler;
+import com.exifcleaner.core.formats.WebpHandler;
 import com.exifcleaner.model.AppStateModel;
 import com.exifcleaner.service.BatchScannerService;
 import com.exifcleaner.service.CleaningService;
@@ -39,6 +46,12 @@ public class App extends Application {
 
     private MainViewModel mainViewModel;
 
+    /**
+     * Starts the JavaFX application and wires all core dependencies.
+     *
+     * @param primaryStage main JavaFX stage
+     * @throws IOException if FXML or stylesheet resources cannot be loaded
+     */
     @Override
     public void start(Stage primaryStage) throws IOException {
         // ── Step 1: Load FXML early to get LogPanelController ───────────────
@@ -51,25 +64,13 @@ public class App extends Application {
 
         // ── Step 2: Wire GUI log sink FIRST — before any service is constructed ──
         AppLogger.registerGuiSink(mainController.getLogPanelController()::appendLogEntry);
-        AppLogger.info(AppConfig.APP_NAME + " v" + AppConfig.APP_VERSION + " starting…");
+        AppLogger.info(AppConfig.APP_NAME + " v" + AppConfig.APP_VERSION + " starting...");
 
         // ── Step 3: Construct AppStateModel ──────────────────────────────────
         AppStateModel state = new AppStateModel();
 
         // ── Step 4: Construct format handlers and CleaningEngine ─────────────
-        CleaningEngine engine = new CleaningEngine(
-            List.of(
-                new com.exifcleaner.core.formats.JpegHandler(),
-                new com.exifcleaner.core.formats.PngHandler(),
-                new com.exifcleaner.core.formats.WebpHandler(),
-                new com.exifcleaner.core.formats.HeicHandler(),
-                new com.exifcleaner.core.formats.BmpHandler(),
-                new com.exifcleaner.core.formats.GifHandler(),
-                new com.exifcleaner.core.formats.PdfHandler(),
-                new com.exifcleaner.core.formats.TiffHandler(),
-                new com.exifcleaner.core.formats.RawHandler()
-            )
-        );
+        CleaningEngine engine = new CleaningEngine(createHandlers());
 
         // ── Step 5: Construct services ────────────────────────────────────────
         BatchScannerService scannerService  = new BatchScannerService();
@@ -97,6 +98,10 @@ public class App extends Application {
         AppLogger.info("UI initialised. Ready.");
     }
 
+    /**
+     * Invoked by JavaFX during application shutdown.
+     * Cancels active processing and shuts down background resources.
+     */
     @Override
     public void stop() {
         if (mainViewModel != null) {
@@ -113,5 +118,24 @@ public class App extends Application {
      */
     public static void main(String[] args) {
         launch(args);
+    }
+
+    /**
+     * Creates the ordered format handler list used by {@link CleaningEngine}.
+     *
+     * @return immutable handler list in detection priority order
+     */
+    private List<FormatHandler> createHandlers() {
+        return List.of(
+            new JpegHandler(),
+            new PngHandler(),
+            new WebpHandler(),
+            new HeicHandler(),
+            new BmpHandler(),
+            new GifHandler(),
+            new PdfHandler(),
+            new TiffHandler(),
+            new RawHandler()
+        );
     }
 }

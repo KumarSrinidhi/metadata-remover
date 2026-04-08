@@ -29,6 +29,7 @@ public class RawHandler implements FormatHandler {
 
     private final TiffHandler tiffHandler = new TiffHandler();
 
+    /** {@inheritDoc} */
     @Override
     public boolean supports(Path path) {
         try {
@@ -82,6 +83,7 @@ public class RawHandler implements FormatHandler {
 
     /**
      * {@inheritDoc}
+     * Reads metadata in read-only mode for display purposes.
      */
     @Override
     public Map<String, String> getMetadataSummary(Path path) {

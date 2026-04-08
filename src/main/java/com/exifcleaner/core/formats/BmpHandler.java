@@ -21,6 +21,7 @@ import java.util.Map;
  */
 public class BmpHandler implements FormatHandler {
 
+    /** {@inheritDoc} */
     @Override
     public boolean supports(Path path) {
         try {
@@ -65,7 +66,7 @@ public class BmpHandler implements FormatHandler {
 
     /**
      * {@inheritDoc}
-     * BMP does not have EXIF/IPTC/XMP metadata, returns an empty map.
+     * BMP does not define EXIF, IPTC, or XMP blocks, so this returns an empty map.
      */
     @Override
     public Map<String, String> getMetadataSummary(Path path) {

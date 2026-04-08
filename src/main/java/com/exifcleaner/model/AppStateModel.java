@@ -157,26 +157,46 @@ public class AppStateModel {
 
     // ── processStandardImages ────────────────────────────────────────────────
 
+    /** @return property controlling JPEG/PNG/TIFF/WebP/BMP/GIF processing. */
     public BooleanProperty processStandardImagesProperty() { return processStandardImages; }
+
+    /** @return true if standard image formats are enabled for scanning. */
     public boolean isProcessStandardImages() { return processStandardImages.get(); }
+
+    /** @param value true to include standard image formats during scanning. */
     public void setProcessStandardImages(boolean value) { processStandardImages.set(value); }
 
     // ── processHeic ──────────────────────────────────────────────────────────
 
+    /** @return property controlling HEIC/HEIF processing. */
     public BooleanProperty processHeicProperty() { return processHeic; }
+
+    /** @return true if HEIC/HEIF files are enabled for scanning. */
     public boolean isProcessHeic() { return processHeic.get(); }
+
+    /** @param value true to include HEIC/HEIF files during scanning. */
     public void setProcessHeic(boolean value) { processHeic.set(value); }
 
     // ── processPdf ───────────────────────────────────────────────────────────
 
+    /** @return property controlling PDF processing. */
     public BooleanProperty processPdfProperty() { return processPdf; }
+
+    /** @return true if PDF files are enabled for scanning. */
     public boolean isProcessPdf() { return processPdf.get(); }
+
+    /** @param value true to include PDF files during scanning. */
     public void setProcessPdf(boolean value) { processPdf.set(value); }
 
     // ── processRaw ───────────────────────────────────────────────────────────
 
+    /** @return property controlling RAW format processing. */
     public BooleanProperty processRawProperty() { return processRaw; }
+
+    /** @return true if RAW formats are enabled for scanning. */
     public boolean isProcessRaw() { return processRaw.get(); }
+
+    /** @param value true to include RAW formats during scanning. */
     public void setProcessRaw(boolean value) { processRaw.set(value); }
 
     // ── isProcessing ─────────────────────────────────────────────────────────

@@ -23,12 +23,12 @@ public final class AppConfig {
         ".cr2", ".cr3", ".nef", ".arw", ".dng"
     );
 
-    // RAW formats need special warning treatment
+    /** RAW file extensions that surface caution labels in the UI. */
     public static final Set<String> RAW_EXTENSIONS = Set.of(
         ".cr2", ".cr3", ".nef", ".arw", ".dng"
     );
 
-    // Formats with no standard metadata (BMP)
+    /** Formats that typically do not carry removable EXIF/IPTC/XMP metadata blocks. */
     public static final Set<String> NO_METADATA_FORMATS = Set.of(".bmp");
 
     /** Maximum number of files that can be queued in a single batch. */

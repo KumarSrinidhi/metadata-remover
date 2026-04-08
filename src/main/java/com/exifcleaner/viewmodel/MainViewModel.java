@@ -19,6 +19,7 @@ import javafx.concurrent.Task;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -100,7 +101,7 @@ public class MainViewModel {
         List<FileEntry> newEntries = scannerService.scan(paths, state);
 
         // Merge: rebuild list with existing + new (scanner deduplicates internally)
-        List<FileEntry> combined = new java.util.ArrayList<>(state.getLoadedFilesUnmodifiable());
+        List<FileEntry> combined = new ArrayList<>(state.getLoadedFilesUnmodifiable());
         combined.addAll(newEntries);
         state.setLoadedFiles(combined);
         filesCounter.set("0 / " + combined.size());
@@ -127,10 +128,8 @@ public class MainViewModel {
             int done  = state.getResults().size();
             int total = state.getLoadedFiles().size();
             filesCounter.set(done + " / " + total);
-            
-            for (String warning : result.warnings()) {
-                AppLogger.warn("[" + result.inputPath().getFileName() + "] " + warning);
-            }
+
+            logResultWarnings(result);
         };
 
         activeTask = cleaningService.createCleaningTask(state, onStart, onComplete);
@@ -249,13 +248,7 @@ public class MainViewModel {
      * @param status the new status
      */
     private void updateFileStatus(FileEntry entry, FileStatus status) {
-        ObservableList<FileEntry> list = state.getLoadedFiles();
-        for (int i = 0; i < list.size(); i++) {
-            if (list.get(i).path().equals(entry.path())) {
-                list.set(i, entry.withStatus(status));
-                return;
-            }
-        }
+        updateStatusByPath(entry.path(), ignored -> entry.withStatus(status));
     }
 
     /**
@@ -264,12 +257,24 @@ public class MainViewModel {
      * @param result the completed result
      */
     private void updateFileStatusByResult(ProcessResult result) {
+        updateStatusByPath(result.inputPath(), current -> current.withStatus(result.status()));
+    }
+
+    private void updateStatusByPath(Path path,
+                                    java.util.function.Function<FileEntry, FileEntry> updater) {
         ObservableList<FileEntry> list = state.getLoadedFiles();
         for (int i = 0; i < list.size(); i++) {
-            if (list.get(i).path().equals(result.inputPath())) {
-                list.set(i, list.get(i).withStatus(result.status()));
+            FileEntry current = list.get(i);
+            if (current.path().equals(path)) {
+                list.set(i, updater.apply(current));
                 return;
             }
+        }
+    }
+
+    private void logResultWarnings(ProcessResult result) {
+        for (String warning : result.warnings()) {
+            AppLogger.warn("[" + result.inputPath().getFileName() + "] " + warning);
         }
     }
 
