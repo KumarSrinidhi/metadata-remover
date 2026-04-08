@@ -90,6 +90,7 @@ Handler contract:
 - UI actions occur on JavaFX thread.
 - Cleaning runs on a single background worker thread.
 - Progress and message updates are published through JavaFX Task bindings.
+- **All UI callbacks from background threads are wrapped in `Platform.runLater()`** for JavaFX thread safety.
 - Cancellation is cooperative and checked before each file.
 
 ## Data Integrity and Safety Rules
@@ -98,6 +99,8 @@ Handler contract:
 - Output path is deterministic and controlled by OutputMode.
 - Format detection uses content signatures, not only file extensions.
 - Processing options are snapshotted at task start to avoid mid-run drift.
+- **All handlers enforce a 500MB file size limit** to prevent memory issues.
+- **Logging is thread-safe** using AtomicReference for GUI sink management.
 
 ## Key Public APIs
 

@@ -90,6 +90,8 @@ ExifCleaner helps remove that data before publishing or distributing files.
   - extension pre-filter
   - magic-byte validation
   - type-filter eligibility checks
+- **File size limits**: Maximum supported file size is 500MB to prevent memory issues
+- **Thread-safe logging**: All UI updates dispatched via `Platform.runLater()` for JavaFX thread safety
 
 ### Technical highlights
 
@@ -358,6 +360,7 @@ Default behavior:
 
 ## Known Limitations
 
+- **File size limit**: Files over 500MB are rejected to prevent memory issues
 - RAW handling is best-effort because vendor formats can carry proprietary metadata layouts.
 - Some HEIC operations may fall back to copy-oriented behavior depending on file structure.
 - Processing is intentionally single-worker for deterministic behavior over maximum throughput.

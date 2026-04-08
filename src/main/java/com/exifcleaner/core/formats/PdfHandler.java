@@ -31,7 +31,7 @@ import java.util.Map;
  */
 public class PdfHandler implements FormatHandler {
 
-    private static final long MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
+    private static final long MAX_FILE_SIZE = AppConfig.MAX_FILE_SIZE;
 
     /** {@inheritDoc} */
     @Override

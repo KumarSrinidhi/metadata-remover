@@ -1,5 +1,6 @@
 package com.exifcleaner.core.formats;
 
+import com.exifcleaner.AppConfig;
 import com.exifcleaner.model.CleanOptions;
 import com.exifcleaner.model.FileStatus;
 import com.exifcleaner.model.ProcessResult;
@@ -20,6 +21,8 @@ import java.util.Map;
  * BMP has no standard metadata — validate format, copy pixel data cleanly, log "No metadata found".
  */
 public class BmpHandler implements FormatHandler {
+
+    private static final long MAX_FILE_SIZE = AppConfig.MAX_FILE_SIZE;
 
     /** {@inheritDoc} */
     @Override
@@ -45,6 +48,9 @@ public class BmpHandler implements FormatHandler {
 
         try {
             long inputSize = Files.size(inputPath);
+            if (inputSize > MAX_FILE_SIZE) {
+                throw new IOException("File too large: " + inputSize + " bytes (max: " + MAX_FILE_SIZE + ")");
+            }
             
             // BMP has no standard metadata to strip.
             // Simply copy the file and log a warning.

@@ -5,6 +5,7 @@ import com.drew.imaging.ImageProcessingException;
 import com.drew.metadata.Directory;
 import com.drew.metadata.Metadata;
 import com.drew.metadata.Tag;
+import com.exifcleaner.AppConfig;
 import com.exifcleaner.model.CleanOptions;
 import com.exifcleaner.model.FileStatus;
 import com.exifcleaner.model.ProcessResult;
@@ -29,6 +30,8 @@ import java.util.Map;
  */
 public class WebpHandler implements FormatHandler {
 
+    private static final long MAX_FILE_SIZE = AppConfig.MAX_FILE_SIZE;
+
     /** {@inheritDoc} */
     @Override
     public boolean supports(Path path) {
@@ -38,40 +41,6 @@ public class WebpHandler implements FormatHandler {
             return false;
         }
     }
-
-    /**
-     * {@inheritDoc}
-     *
-     * REMOVAL PATH: Uses raw byte manipulation only.
-     * metadata-extractor is NOT used here. See getMetadataSummary() for read-only usage.
-     */
-    @Override
-    public ProcessResult clean(Path inputPath, Path outputPath, CleanOptions options)
-            throws MetadataRemovalException {
-        long startMs = System.currentTimeMillis();
-        List<String> warnings = new ArrayList<>();
-
-        try {
-            long inputSize = Files.size(inputPath);
-            byte[] cleaned = stripMetadataChunks(inputPath, options, warnings);
-            Files.write(outputPath, cleaned);
-            long bytesSaved = inputSize - cleaned.length;
-
-            AppLogger.info("Cleaned WebP: " + inputPath.getFileName()
-                + " (" + bytesSaved + " bytes saved)");
-
-            return new ProcessResult(
-                inputPath, outputPath, FileStatus.DONE,
-                bytesSaved, System.currentTimeMillis() - startMs, warnings, null);
-
-        } catch (IOException e) {
-            AppLogger.error("Failed to clean WebP: " + inputPath.getFileName(), e);
-            throw new MetadataRemovalException(
-                "Failed to clean WebP: " + inputPath.getFileName() + ": " + e.getMessage(), e);
-        }
-    }
-
-    private static final long MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
     private byte[] stripMetadataChunks(Path inputPath, CleanOptions options, List<String> warnings) throws IOException {
         long inputSize = Files.size(inputPath);
@@ -173,6 +142,38 @@ public class WebpHandler implements FormatHandler {
         System.arraycopy(riffHeader, 0, result, 4, 4);
 
         return result;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * REMOVAL PATH: Uses native RIFF WebP chunk parsing.
+     * metadata-extractor is NOT used here. See getMetadataSummary() for read-only usage.
+     */
+    @Override
+    public ProcessResult clean(Path inputPath, Path outputPath, CleanOptions options)
+            throws MetadataRemovalException {
+        long startMs = System.currentTimeMillis();
+        List<String> warnings = new ArrayList<>();
+
+        try {
+            byte[] cleaned = stripMetadataChunks(inputPath, options, warnings);
+            Files.write(outputPath, cleaned);
+            long inputSize = Files.size(inputPath);
+            long bytesSaved = inputSize - cleaned.length;
+
+            AppLogger.info("Cleaned WebP: " + inputPath.getFileName()
+                + " (" + bytesSaved + " bytes saved)");
+
+            return new ProcessResult(
+                inputPath, outputPath, FileStatus.DONE,
+                bytesSaved, System.currentTimeMillis() - startMs, warnings, null);
+
+        } catch (IOException e) {
+            AppLogger.error("Failed to clean WebP: " + inputPath.getFileName(), e);
+            throw new MetadataRemovalException(
+                "Failed to clean WebP: " + inputPath.getFileName() + ": " + e.getMessage(), e);
+        }
     }
 
     /**

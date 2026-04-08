@@ -5,12 +5,14 @@ import com.drew.imaging.ImageProcessingException;
 import com.drew.metadata.Directory;
 import com.drew.metadata.Metadata;
 import com.drew.metadata.Tag;
+import com.exifcleaner.AppConfig;
 import com.exifcleaner.model.CleanOptions;
 import com.exifcleaner.model.FileStatus;
 import com.exifcleaner.model.ProcessResult;
 import com.exifcleaner.utilities.AppLogger;
 import com.exifcleaner.utilities.FileValidator;
 import com.exifcleaner.utilities.errors.MetadataRemovalException;
+import com.exifcleaner.utilities.errors.UnsupportedFormatException;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -27,7 +29,7 @@ import java.util.Map;
  */
 public class RawHandler implements FormatHandler {
 
-    private static final long MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
+    private static final long MAX_FILE_SIZE = AppConfig.MAX_FILE_SIZE;
 
     private final TiffHandler tiffHandler = new TiffHandler();
 

@@ -39,7 +39,7 @@ import java.util.Set;
  */
 public class TiffHandler implements FormatHandler {
 
-    private static final long MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
+    private static final long MAX_FILE_SIZE = AppConfig.MAX_FILE_SIZE;
 
     /** TIFF metadata tag IDs that represent metadata sub-IFDs (EXIF, IPTC, XMP). */
     private static final Set<String> EXIF_XMP_IPTC_NODE_NAMES =

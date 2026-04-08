@@ -34,6 +34,9 @@ public final class AppConfig {
     /** Maximum number of files that can be queued in a single batch. */
     public static final int MAX_BATCH_SIZE = 10_000;
 
+    /** Maximum file size (500MB) to prevent memory issues during processing. */
+    public static final long MAX_FILE_SIZE = 500 * 1024 * 1024;
+
     /** Suffix appended to cleaned output files when using SAME_FOLDER output mode. */
     public static final String CLEANED_SUFFIX = "_cleaned";
 

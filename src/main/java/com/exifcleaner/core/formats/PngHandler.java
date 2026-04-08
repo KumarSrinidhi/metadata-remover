@@ -34,7 +34,7 @@ import java.util.zip.CRC32;
  */
 public class PngHandler implements FormatHandler {
 
-    private static final long MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
+    private static final long MAX_FILE_SIZE = AppConfig.MAX_FILE_SIZE;
 
     /** PNG file signature (8 bytes). */
     private static final byte[] PNG_SIGNATURE =
