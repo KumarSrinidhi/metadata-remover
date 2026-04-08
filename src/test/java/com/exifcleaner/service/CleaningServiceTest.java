@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -91,9 +92,22 @@ class CleaningServiceTest {
         List<FileEntry>     started   = new ArrayList<>();
         List<ProcessResult> completed = new ArrayList<>();
 
+        CountDownLatch latch = new CountDownLatch(2);
+        Consumer<FileEntry> startCallback = entry -> {
+            started.add(entry);
+            latch.countDown();
+        };
+        Consumer<ProcessResult> completeCallback = result -> {
+            completed.add(result);
+            latch.countDown();
+        };
+
         Task<List<ProcessResult>> task = service.createCleaningTask(
-            state, started::add, completed::add);
+            state, startCallback, completeCallback);
         runTaskAndWait(task);
+
+        // Wait for Platform.runLater callbacks to complete (they run asynchronously)
+        assertTrue(latch.await(5, TimeUnit.SECONDS), "Callbacks should complete within timeout");
 
         assertEquals(1, started.size());
         assertEquals(1, completed.size());

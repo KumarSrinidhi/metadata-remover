@@ -33,6 +33,7 @@ public class JpegHandler implements FormatHandler {
 
     private static final int MARKER_PREFIX = 0xFF;
     private static final int SOI_MARKER    = 0xD8;
+    private static final long MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
     /** {@inheritDoc} */
     @Override
@@ -58,6 +59,9 @@ public class JpegHandler implements FormatHandler {
 
         try {
             long inputSize = Files.size(inputPath);
+            if (inputSize > MAX_FILE_SIZE) {
+                throw new IOException("File too large: " + inputSize + " bytes (max: " + MAX_FILE_SIZE + ")");
+            }
             byte[] cleaned = stripMetadataSegments(inputPath, options, warnings);
             Files.write(outputPath, cleaned);
             long bytesSaved = inputSize - cleaned.length;

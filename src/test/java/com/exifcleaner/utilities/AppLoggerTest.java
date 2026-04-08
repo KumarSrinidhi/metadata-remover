@@ -16,18 +16,8 @@ class AppLoggerTest {
 
     // Reset AppLogger state via reflection before each test
     @BeforeEach
-    void resetAppLogger() throws Exception {
-        var guiSinkField = AppLogger.class.getDeclaredField("guiSink");
-        guiSinkField.setAccessible(true);
-        guiSinkField.set(null, null);
-
-        var sinkRegisteredField = AppLogger.class.getDeclaredField("sinkRegistered");
-        sinkRegisteredField.setAccessible(true);
-        sinkRegisteredField.set(null, false);
-
-        var earlyBufferField = AppLogger.class.getDeclaredField("earlyBuffer");
-        earlyBufferField.setAccessible(true);
-        ((List<?>) earlyBufferField.get(null)).clear();
+    void resetAppLogger() {
+        AppLogger.resetForTest();
     }
 
     @Test

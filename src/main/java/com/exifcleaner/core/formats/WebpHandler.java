@@ -71,7 +71,14 @@ public class WebpHandler implements FormatHandler {
         }
     }
 
+    private static final long MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
+
     private byte[] stripMetadataChunks(Path inputPath, CleanOptions options, List<String> warnings) throws IOException {
+        long inputSize = Files.size(inputPath);
+        if (inputSize > MAX_FILE_SIZE) {
+            throw new IOException("File too large: " + inputSize + " bytes (max: " + MAX_FILE_SIZE + ")");
+        }
+
         byte[] input = Files.readAllBytes(inputPath);
         if (input.length < 12) {
             throw new IOException("Not a valid WebP: file too small");
@@ -83,12 +90,11 @@ public class WebpHandler implements FormatHandler {
             throw new IOException("Not a valid WebP: missing RIFF/WEBP signature");
         }
 
-        // We will collect chunks
         ByteArrayOutputStream outChunks = new ByteArrayOutputStream();
         int pos = 12;
         boolean hasExifRemoved = false;
         boolean hasXmpRemoved = false;
-        byte[] modifiedVp8x = null;
+        byte[] vp8xPayload = null;
 
         while (pos < input.length) {
             if (pos + 8 > input.length) break;
@@ -101,16 +107,11 @@ public class WebpHandler implements FormatHandler {
 
             int paddedSize = chunkSize + (chunkSize % 2);
             if (pos + 8 + paddedSize > input.length) {
-                // Truncated chunk or soft end. We just stop here or copy the rest.
                 break;
             }
 
             if (chunkID.equals("VP8X")) {
-                // VP8X is 10 bytes payload
-                byte[] chunkPayload = Arrays.copyOfRange(input, pos + 8, pos + 8 + paddedSize);
-                modifiedVp8x = new byte[paddedSize];
-                System.arraycopy(chunkPayload, 0, modifiedVp8x, 0, paddedSize);
-                // We'll write this later after knowing what was removed
+                vp8xPayload = Arrays.copyOfRange(input, pos + 8, pos + 8 + paddedSize);
             } else if (chunkID.equals("EXIF")) {
                 if (options.removeExif() || options.removeThumbnail()) {
                     hasExifRemoved = true;
@@ -118,63 +119,60 @@ public class WebpHandler implements FormatHandler {
                         warnings.add("Thumbnail removal required stripping full EXIF block.");
                     }
                     pos += 8 + paddedSize;
-                    continue; // Skip EXIF
-                } else {
-                    outChunks.write(input, pos, 8 + paddedSize);
+                    continue;
                 }
             } else if (chunkID.equals("XMP ")) {
                 if (options.removeXmp()) {
                     hasXmpRemoved = true;
                     pos += 8 + paddedSize;
-                    continue; // Skip XMP
-                } else {
-                    outChunks.write(input, pos, 8 + paddedSize);
+                    continue;
                 }
-            } else {
-                // Normal chunks
-                outChunks.write(input, pos, 8 + paddedSize);
             }
 
+            outChunks.write(input, pos, 8 + paddedSize);
             pos += 8 + paddedSize;
         }
 
         ByteArrayOutputStream finalOut = new ByteArrayOutputStream();
-        finalOut.write(input, 0, 4); // "RIFF"
-        
+        finalOut.write(input, 0, 4);
+
         byte[] chunkBytes = outChunks.toByteArray();
-        int finalRiffPayloadSize = 4 + chunkBytes.length; // "WEBP" + chunks
-        
-        if (modifiedVp8x != null) {
-            // Unset bits
+        int vp8xSize = vp8xPayload != null ? 8 + vp8xPayload.length : 0;
+        int finalRiffPayloadSize = 4 + vp8xSize + chunkBytes.length;
+
+        if (vp8xPayload != null) {
+            byte[] modifiedVp8x = vp8xPayload.clone();
             if (hasExifRemoved) {
-                modifiedVp8x[0] = (byte) (modifiedVp8x[0] & ~0x08); // Exif flag is bit 3: 0000 1000
+                modifiedVp8x[0] = (byte) (modifiedVp8x[0] & ~0x08);
             }
             if (hasXmpRemoved) {
-                modifiedVp8x[0] = (byte) (modifiedVp8x[0] & ~0x04); // XMP flag is bit 2: 0000 0100
+                modifiedVp8x[0] = (byte) (modifiedVp8x[0] & ~0x04);
             }
-            finalRiffPayloadSize += 8 + modifiedVp8x.length;
+
+            byte[] vp8xChunk = new byte[4 + 4 + modifiedVp8x.length];
+            System.arraycopy("VP8X".getBytes(), 0, vp8xChunk, 0, 4);
+            vp8xChunk[4] = (byte) (modifiedVp8x.length & 0xFF);
+            vp8xChunk[5] = (byte) ((modifiedVp8x.length >> 8) & 0xFF);
+            vp8xChunk[6] = (byte) ((modifiedVp8x.length >> 16) & 0xFF);
+            vp8xChunk[7] = (byte) ((modifiedVp8x.length >> 24) & 0xFF);
+            System.arraycopy(modifiedVp8x, 0, vp8xChunk, 8, modifiedVp8x.length);
+
+            finalOut.write(vp8xChunk);
         }
-        
-        // Write total size
-        finalOut.write(finalRiffPayloadSize & 0xFF);
-        finalOut.write((finalRiffPayloadSize >> 8) & 0xFF);
-        finalOut.write((finalRiffPayloadSize >> 16) & 0xFF);
-        finalOut.write((finalRiffPayloadSize >> 24) & 0xFF);
-        
-        finalOut.write(input, 8, 4); // "WEBP"
-        
-        if (modifiedVp8x != null) {
-            finalOut.write("VP8X".getBytes());
-            int vp8xLen = modifiedVp8x.length;
-            finalOut.write(vp8xLen & 0xFF);
-            finalOut.write((vp8xLen >> 8) & 0xFF);
-            finalOut.write((vp8xLen >> 16) & 0xFF);
-            finalOut.write((vp8xLen >> 24) & 0xFF);
-            finalOut.write(modifiedVp8x);
-        }
-        
+
         finalOut.write(chunkBytes);
-        return finalOut.toByteArray();
+
+        int finalSize = finalOut.size() - 8;
+        byte[] riffHeader = new byte[4];
+        riffHeader[0] = (byte) (finalSize & 0xFF);
+        riffHeader[1] = (byte) ((finalSize >> 8) & 0xFF);
+        riffHeader[2] = (byte) ((finalSize >> 16) & 0xFF);
+        riffHeader[3] = (byte) ((finalSize >> 24) & 0xFF);
+
+        byte[] result = finalOut.toByteArray();
+        System.arraycopy(riffHeader, 0, result, 4, 4);
+
+        return result;
     }
 
     /**

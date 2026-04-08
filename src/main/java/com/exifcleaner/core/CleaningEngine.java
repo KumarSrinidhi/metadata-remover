@@ -96,8 +96,11 @@ public class CleaningEngine {
      * @return the resolved output path
      */
     public static Path resolveOutputPath(Path inputPath, CleanOptions options) {
-        if (options.outputMode() == OutputMode.CUSTOM_FOLDER
-                && options.customOutputFolder() != null) {
+        if (options.outputMode() == OutputMode.CUSTOM_FOLDER) {
+            if (options.customOutputFolder() == null) {
+                throw new IllegalArgumentException(
+                    "CUSTOM_FOLDER output mode requires customOutputFolder to be set");
+            }
             return options.customOutputFolder().resolve(inputPath.getFileName());
         }
         // SAME_FOLDER: insert _cleaned before the extension

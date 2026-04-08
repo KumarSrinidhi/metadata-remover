@@ -39,6 +39,8 @@ import java.util.Set;
  */
 public class TiffHandler implements FormatHandler {
 
+    private static final long MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
+
     /** TIFF metadata tag IDs that represent metadata sub-IFDs (EXIF, IPTC, XMP). */
     private static final Set<String> EXIF_XMP_IPTC_NODE_NAMES =
         Set.of("TIFFTAG_EXIFIFD", "TIFFTAG_IPTC", "TIFFTAG_XMP",
@@ -68,6 +70,9 @@ public class TiffHandler implements FormatHandler {
 
         try {
             long inputSize = Files.size(inputPath);
+            if (inputSize > MAX_FILE_SIZE) {
+                throw new IOException("File too large: " + inputSize + " bytes (max: " + MAX_FILE_SIZE + ")");
+            }
             reencodeWithFilteredMetadata(inputPath, outputPath, options, warnings);
             long outputSize = Files.size(outputPath);
             long bytesSaved = inputSize - outputSize;
@@ -107,28 +112,31 @@ public class TiffHandler implements FormatHandler {
 
         Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("TIFF");
         if (!writers.hasNext()) {
+            reader.dispose();
             throw new IOException("No TIFF ImageWriter available — TwelveMonkeys not on classpath?");
         }
         ImageWriter writer = writers.next();
 
-        try (ImageInputStream iis = ImageIO.createImageInputStream(inputPath.toFile());
-             ImageOutputStream ios = ImageIO.createImageOutputStream(outputPath.toFile())) {
+        try {
+            try (ImageInputStream iis = ImageIO.createImageInputStream(inputPath.toFile());
+                 ImageOutputStream ios = ImageIO.createImageOutputStream(outputPath.toFile())) {
 
-            reader.setInput(iis);
-            writer.setOutput(ios);
+                reader.setInput(iis);
+                writer.setOutput(ios);
 
-            int numImages = reader.getNumImages(true);
-            writer.prepareWriteSequence(null);
+                int numImages = reader.getNumImages(true);
+                writer.prepareWriteSequence(null);
 
-            for (int i = 0; i < numImages; i++) {
-                BufferedImage image = reader.read(i, null);
-                IIOMetadata metadata = reader.getImageMetadata(i);
-                IIOMetadata filtered = filterTiffMetadata(metadata, options, warnings);
-                writer.writeToSequence(new IIOImage(image, null, filtered), null);
+                for (int i = 0; i < numImages; i++) {
+                    BufferedImage image = reader.read(i, null);
+                    IIOMetadata metadata = reader.getImageMetadata(i);
+                    IIOMetadata filtered = filterTiffMetadata(metadata, options, warnings);
+                    writer.writeToSequence(new IIOImage(image, null, filtered), null);
+                }
+
+                writer.endWriteSequence();
+
             }
-
-            writer.endWriteSequence();
-
         } finally {
             reader.dispose();
             writer.dispose();

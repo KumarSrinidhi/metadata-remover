@@ -9,6 +9,7 @@ import com.exifcleaner.model.ProcessResult;
 import com.exifcleaner.utilities.AppLogger;
 import com.exifcleaner.utilities.errors.MetadataRemovalException;
 import com.exifcleaner.utilities.errors.UnsupportedFormatException;
+import javafx.application.Platform;
 import javafx.concurrent.Task;
 
 import java.nio.file.Path;
@@ -74,13 +75,13 @@ public class CleaningService {
                     }
 
                     FileEntry entry = files.get(i);
-                    onFileStart.accept(entry);
+                    Platform.runLater(() -> onFileStart.accept(entry));
                     updateMessage(entry.path().getFileName().toString());
-                    updateProgress(i, total);
+                    updateProgress(i + 1, total);
 
                     ProcessResult result = processFile(entry, options);
                     results.add(result);
-                    onFileComplete.accept(result);
+                    Platform.runLater(() -> onFileComplete.accept(result));
                 }
 
                 updateProgress(total, total);

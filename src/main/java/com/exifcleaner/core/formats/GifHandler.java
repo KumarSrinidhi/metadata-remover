@@ -27,6 +27,8 @@ import java.util.Map;
  */
 public class GifHandler implements FormatHandler {
 
+    private static final long MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
+
     /** {@inheritDoc} */
     @Override
     public boolean supports(Path path) {
@@ -50,6 +52,9 @@ public class GifHandler implements FormatHandler {
 
         try {
             long inputSize = Files.size(inputPath);
+            if (inputSize > MAX_FILE_SIZE) {
+                throw new IOException("File too large: " + inputSize + " bytes (max: " + MAX_FILE_SIZE + ")");
+            }
             byte[] input = Files.readAllBytes(inputPath);
             byte[] cleaned = stripGifMetadata(input, options);
             

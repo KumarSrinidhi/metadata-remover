@@ -34,6 +34,8 @@ import java.util.zip.CRC32;
  */
 public class PngHandler implements FormatHandler {
 
+    private static final long MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
+
     /** PNG file signature (8 bytes). */
     private static final byte[] PNG_SIGNATURE =
         { (byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
@@ -71,6 +73,9 @@ public class PngHandler implements FormatHandler {
 
         try {
             long inputSize = Files.size(inputPath);
+            if (inputSize > MAX_FILE_SIZE) {
+                throw new IOException("File too large: " + inputSize + " bytes (max: " + MAX_FILE_SIZE + ")");
+            }
             byte[] cleaned = filterPngChunks(inputPath, options, warnings);
             Files.write(outputPath, cleaned);
             long bytesSaved = inputSize - cleaned.length;

@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 /**
@@ -21,11 +22,8 @@ public final class AppLogger {
 
     private static final Logger log = LoggerFactory.getLogger(AppLogger.class);
 
-    /** GUI sink — null until registered. Volatile for cross-thread visibility. */
-    private static volatile Consumer<String> guiSink = null;
-
-    /** True once registerGuiSink has been called. */
-    private static volatile boolean sinkRegistered = false;
+    /** GUI sink — uses AtomicReference for atomic swap and thread-safe read. */
+    private static final AtomicReference<Consumer<String>> guiSinkRef = new AtomicReference<>();
 
     /** Buffer for messages logged before the GUI sink is registered. */
     private static final List<String> earlyBuffer = new CopyOnWriteArrayList<>();
@@ -40,10 +38,22 @@ public final class AppLogger {
      * @param sink a consumer that appends formatted log messages to the log panel
      */
     public static void registerGuiSink(Consumer<String> sink) {
-        guiSink = sink;
-        sinkRegistered = true;
-        earlyBuffer.forEach(sink);
+        Consumer<String> existing = guiSinkRef.get();
+        if (existing != null) {
+            return;
+        }
+        if (!guiSinkRef.compareAndSet(null, sink)) {
+            return;
+        }
+        List<String> bufferSnapshot = new java.util.ArrayList<>(earlyBuffer);
         earlyBuffer.clear();
+        for (String msg : bufferSnapshot) {
+            try {
+                sink.accept(msg);
+            } catch (Exception e) {
+                log.warn("Failed to flush buffered message to GUI sink", e);
+            }
+        }
     }
 
     /**
@@ -84,10 +94,23 @@ public final class AppLogger {
      * @param formatted the formatted log string (prefix already applied)
      */
     private static void sendToGui(String formatted) {
-        if (sinkRegistered && guiSink != null) {
-            guiSink.accept(formatted);
+        Consumer<String> sink = guiSinkRef.get();
+        if (sink != null) {
+            try {
+                sink.accept(formatted);
+            } catch (Exception e) {
+                log.warn("GUI sink threw exception", e);
+            }
         } else {
-            earlyBuffer.add(formatted);
+            if (earlyBuffer.size() < 10000) {
+                earlyBuffer.add(formatted);
+            }
         }
+    }
+
+    @SuppressWarnings("unused")
+    static void resetForTest() {
+        guiSinkRef.set(null);
+        earlyBuffer.clear();
     }
 }

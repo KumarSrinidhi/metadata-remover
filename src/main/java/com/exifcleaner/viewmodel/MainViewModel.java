@@ -50,7 +50,7 @@ public class MainViewModel {
     private final StringProperty  taskMessage  = new SimpleStringProperty("");
     private final StringProperty  filesCounter = new SimpleStringProperty("0 / 0");
 
-    private Task<List<ProcessResult>> activeTask;
+    private volatile Task<List<ProcessResult>> activeTask;
 
     /**
      * Creates the ViewModel wired to the given services and state.
