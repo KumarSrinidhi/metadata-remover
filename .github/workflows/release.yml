@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: 17
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Build and package
+      run: mvn clean package -B -DskipTests
+
+    - name: Extract version from tag
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        name: ExifCleaner v${{ steps.version.outputs.VERSION }}
+        body: |
+          ## ExifCleaner v${{ steps.version.outputs.VERSION }}
+
+          See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+
+          ### Installation
+          Requires Java 17+. Run with:
+          ```bash
+          java -jar exifcleaner-${{ steps.version.outputs.VERSION }}.jar
+          ```
+          Or use `mvn clean javafx:run` from source.
+        files: |
+          target/exifcleaner-*.jar
+        draft: false
+        prerelease: false
