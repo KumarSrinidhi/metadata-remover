@@ -4,141 +4,141 @@
 
 **A JavaFX desktop application for removing privacy-sensitive metadata from images and documents.**
 
-**Photos go in, clean files come out.**
+**Drop files in. Clean files come out. Nothing leaves your machine.**
 
 [![Java](https://img.shields.io/badge/Java-17%2B-orange)](https://www.oracle.com/java/technologies/javase/jdk17-archive.html)
 [![Maven](https://img.shields.io/badge/Maven-3.8%2B-blue)](https://maven.apache.org/)
 [![JavaFX](https://img.shields.io/badge/JavaFX-21.0.2-blueviolet)](https://gluonhq.com/products/javafx/)
+[![Tests](https://img.shields.io/badge/Tests-91%20passing-brightgreen)](#building-testing-and-packaging)
+[![Coverage](https://img.shields.io/badge/Coverage-62%25-yellow)](#building-testing-and-packaging)
 [![License](https://img.shields.io/badge/License-MIT-green)](#license)
 
-[Overview](#overview) • [Features](#features) • [Quick Start](#quick-start) • [Architecture](#architecture) • [Build and Test](#building-testing-and-packaging)
+[Overview](#overview) · [Quick Start](#quick-start) · [Features](#features) · [Supported Formats](#supported-formats) · [Architecture](#architecture) · [Contributing](#contributing)
 
 </div>
 
 ---
 
-## Table of Contents
-
-- [Overview](#overview)
-- [Why Metadata Cleaning Matters](#why-metadata-cleaning-matters)
-- [Features](#features)
-- [Supported Formats](#supported-formats)
-- [Requirements](#requirements)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Usage Workflow](#usage-workflow)
-- [Output Modes](#output-modes)
-- [Building, Testing, and Packaging](#building-testing-and-packaging)
-- [Architecture](#architecture)
-- [Project Structure](#project-structure)
-- [Configuration](#configuration)
-- [Extending the Application](#extending-the-application)
-- [Troubleshooting](#troubleshooting)
-- [Known Limitations](#known-limitations)
-- [Roadmap](#roadmap)
-- [Contributing](#contributing)
-- [Support](#support)
-- [License](#license)
-
----
-
 ## Overview
 
-ExifCleaner is a local-first desktop tool that removes metadata such as EXIF, IPTC, XMP, and embedded thumbnails from supported files.
+ExifCleaner strips hidden metadata from your files before you share them — GPS coordinates, camera identifiers, timestamps, author fields, editing history, and embedded thumbnails.
 
-The app is designed for privacy-focused sharing workflows:
-- It detects format by file signature (magic bytes), not just extension.
-- It writes cleaned files as new outputs and does not overwrite originals.
-- It supports batch processing with progress updates and detailed logs.
+Everything runs **locally**. No cloud uploads, no network calls, no telemetry.
+
+**How it works:**
+
+1. Drop files or folders onto the app
+2. Choose which metadata types to remove (EXIF, IPTC, XMP, Thumbnail)
+3. Choose where to save the cleaned copies
+4. Click Start — originals are never touched
 
 ---
 
 ## Why Metadata Cleaning Matters
 
-Digital files can contain hidden information that users often do not intend to share:
-- GPS coordinates
-- camera/device identifiers
-- date/time captured
-- software editing history
-- author and copyright fields
-- embedded preview thumbnails
+Every photo or document you create carries hidden data you probably didn't intend to share:
 
-ExifCleaner helps remove that data before publishing or distributing files.
+| Metadata | What it reveals |
+|---|---|
+| GPS coordinates | Exact location where the photo was taken |
+| Camera/device ID | The specific device used |
+| Timestamps | When the file was created or edited |
+| Software history | Which apps edited the file and when |
+| Author fields | Your name, organisation, copyright info |
+| Embedded thumbnails | A small preview that may differ from the cleaned image |
+
+ExifCleaner removes all of this before you publish, send, or archive files.
+
+---
+
+## Quick Start
+
+**Prerequisites:** Java 17+ and Maven 3.8+
+
+```bash
+# Verify your tools
+java -version
+mvn -version
+
+# Clone and run
+git clone https://github.com/KumarSrinidhi/exifcleaner.git
+cd exifcleaner
+mvn clean javafx:run
+```
+
+That's it. The app opens and is ready to use.
 
 ---
 
 ## Features
 
-### Core capabilities
+### Metadata removal
+- **EXIF** — camera settings, GPS, timestamps, device identifiers
+- **IPTC** — author, copyright, keywords, captions
+- **XMP** — editing history, software metadata, extended properties
+- **Embedded thumbnails** — preview images stored inside the file
 
-- Multi-format metadata cleaning
-- Drag-and-drop files and folders
-- Recursive batch scanning
-- Progress and per-file status tracking
-- Real-time log panel with startup-safe buffered logging
-- Selective metadata-type removal:
-  - EXIF
-  - IPTC
-  - XMP
-  - Thumbnail
+Each type can be toggled independently. Remove only what you need.
 
-### Safety and integrity guarantees
+### File handling
+- Drag-and-drop files and folders directly onto the app
+- Recursive folder scanning — drop an entire directory and it finds everything
+- Batch processing with per-file progress and status tracking
+- Real-time log panel showing exactly what happened to each file
+- Format filter toggles: process standard images, HEIC, PDF, and RAW independently
 
-- Non-destructive processing: source files are never modified
-- Deterministic output path resolution
-- Validation pipeline:
-  - extension pre-filter
-  - magic-byte validation
-  - type-filter eligibility checks
-- **File size limits**: Maximum supported file size is 500MB to prevent memory issues
-- **Thread-safe logging**: All UI updates dispatched via `Platform.runLater()` for JavaFX thread safety
+### Safety guarantees
+- **Non-destructive** — original files are never modified or deleted
+- **Magic-byte validation** — format is detected from file content, not just the extension; renamed files are caught
+- **500 MB file size limit** — prevents out-of-memory errors on large files
+- **Immutable options snapshot** — settings are locked at the moment you click Start, so changing a toggle mid-run has no effect
+- **Deterministic output paths** — output location is always predictable
 
-### Technical highlights
+### Output modes
 
-- Java 17 + JavaFX 21
-- Layered MVVM-style architecture
-- Strategy pattern for format handlers
-- Background processing with JavaFX Task
-- Comprehensive automated tests across core, service, and utilities
+| Mode | Behaviour | Example |
+|---|---|---|
+| Same Folder | Saves cleaned file next to the original with `_cleaned` suffix | `photo.jpg` → `photo_cleaned.jpg` |
+| Custom Folder | Saves cleaned file into a folder you choose | `photo.jpg` → `output/photo.jpg` |
 
 ---
 
 ## Supported Formats
 
-| Format | Typical Extensions | Notes |
+| Format | Extensions | Notes |
 |---|---|---|
-| JPEG | .jpg, .jpeg | EXIF/IPTC/XMP segment handling |
-| PNG | .png | Metadata chunks filtered by type |
-| TIFF | .tif, .tiff | Metadata removal via TIFF path |
-| WebP | .webp | Metadata chunks handled per RIFF layout |
-| HEIC/HEIF | .heic, .heif | Best-effort processing with fallback behavior |
-| PDF | .pdf | Metadata document-level cleanup |
-| BMP | .bmp | Minimal/no standard metadata in many files |
-| GIF | .gif | Metadata and extension-block handling |
-| RAW | .cr2, .cr3, .nef, .arw, .dng | Best-effort support; vendor-specific metadata may vary |
+| JPEG | `.jpg` `.jpeg` | Full EXIF/IPTC/XMP segment-level removal |
+| PNG | `.png` | Metadata chunks filtered by type (tEXt, iTXt, zTXt, eXIf) |
+| TIFF | `.tif` `.tiff` | Tag-level removal via TIFF IFD path |
+| WebP | `.webp` | Metadata chunks handled per RIFF container layout |
+| HEIC / HEIF | `.heic` `.heif` | Best-effort; falls back to copy if structure is unsupported |
+| PDF | `.pdf` | Document info dictionary and XMP stream cleanup via PDFBox |
+| BMP | `.bmp` | Passed through; BMP carries minimal standard metadata |
+| GIF | `.gif` | Extension block and comment block removal |
+| RAW | `.cr2` `.cr3` `.nef` `.arw` `.dng` | Best-effort; vendor-specific blocks may not be fully removable |
 
-Format identification uses file signatures to reduce false positives from renamed files.
+> Format detection always reads the file's magic bytes. A `.jpg` file that is actually a PNG will be identified and handled correctly.
 
 ---
 
 ## Requirements
 
-- Java JDK 17+
-- Maven 3.8+
-- Windows, macOS, or Linux
-
-Verify tools:
+| Tool | Minimum version |
+|---|---|
+| Java JDK | 17 |
+| Maven | 3.8 |
+| OS | Windows, macOS, or Linux |
 
 ```bash
-java -version
-mvn -version
+java -version   # should print 17 or higher
+mvn -version    # should print 3.8 or higher
 ```
 
 ---
 
 ## Installation
 
-### Option 1: Clone and run from source
+### Run from source
 
 ```bash
 git clone https://github.com/KumarSrinidhi/exifcleaner.git
@@ -147,272 +147,358 @@ mvn clean install
 mvn clean javafx:run
 ```
 
-### Option 2: Build a runtime image
+### Build a self-contained runtime image
 
 ```bash
 mvn clean javafx:jlink
 ```
 
-Generated runtime image output is placed under target/image.
-
----
-
-## Quick Start
-
-```bash
-mvn clean javafx:run
-```
-
-After launch:
-1. Drag files or folders into the drop zone.
-2. Choose metadata categories to remove.
-3. Choose output mode.
-4. Start cleaning and monitor progress/log output.
+The runtime image is written to `target/image/`. It includes a bundled JRE and can be run without a system Java installation.
 
 ---
 
 ## Usage Workflow
 
-1. Input discovery
-   - Files and folders are scanned recursively.
-   - Unsupported and invalid-signature files are skipped.
-2. Option snapshot
-   - Selected metadata and output options are snapshotted at task start.
-3. Cleaning task
-   - Files are processed one-by-one on a background worker.
-4. Result tracking
-   - Each file receives a final status:
-     - DONE
-     - FAILED
-     - SKIPPED
-
----
-
-## Output Modes
-
-| Mode | Behavior |
-|---|---|
-| SAME_FOLDER | Writes cleaned file beside source, adds _cleaned suffix |
-| CUSTOM_FOLDER | Writes cleaned file into selected destination folder |
-
-Examples:
-- photo.jpg -> photo_cleaned.jpg in SAME_FOLDER mode
-- photo.jpg -> customFolder/photo.jpg in CUSTOM_FOLDER mode
+```
+Drop files/folders
+       │
+       ▼
+BatchScannerService
+  • Walks directories recursively
+  • Filters by extension
+  • Validates magic bytes
+  • Deduplicates
+  • Caps at MAX_BATCH_SIZE (10,000)
+       │
+       ▼
+Options snapshot (immutable at task start)
+  • removeExif / removeIptc / removeXmp / removeThumbnail
+  • outputMode + customOutputFolder
+       │
+       ▼
+CleaningService (background thread)
+  For each file:
+    CleaningEngine → resolves FormatHandler by magic bytes
+    Handler → strips metadata, writes output file
+    Returns ProcessResult (DONE / FAILED / SKIPPED)
+       │
+       ▼
+UI updates via Platform.runLater()
+  • Per-file status in file list
+  • Progress bar
+  • Log panel entries
+```
 
 ---
 
 ## Building, Testing, and Packaging
 
-### Build
+### Build and install
 
 ```bash
 mvn clean install
 ```
 
-### Test
+Compiles, runs all 91 tests, generates a JaCoCo coverage report, and installs the artifact to your local Maven repository.
+
+### Run the application
 
 ```bash
-mvn test
+mvn clean javafx:run
 ```
 
-Examples:
+### Run tests
 
 ```bash
+# All tests
+mvn test
+
+# Specific test class
 mvn test -Dtest=CleaningEngineTest
+mvn test -Dtest=JpegHandlerTest
 mvn test -Dtest=FileValidatorParameterizedTest
 ```
 
-### Package
+### Code quality (on demand)
+
+```bash
+# Static analysis
+mvn spotbugs:check
+
+# Code style
+mvn pmd:check
+
+# Security vulnerability scan
+mvn dependency-check:check
+```
+
+### Package a JAR
 
 ```bash
 mvn package
 ```
 
+Output: `target/exifcleaner-1.0.0.jar`
+
+### Build a runtime image
+
+```bash
+mvn clean javafx:jlink
+```
+
+Output: `target/image/`
+
 ---
 
 ## Architecture
 
-### Layer model
+ExifCleaner uses a layered **MVVM** architecture. Each layer has a single responsibility and depends only on layers below it.
 
-- View:
-  - JavaFX controllers and FXML composition
-- ViewModel:
-  - workflow orchestration and UI-facing observable properties
-- Service:
-  - scanning and background task creation
-- Core:
-  - handler resolution and metadata cleaning strategies
-- Model:
-  - app state, options, file entries, results
-- Utilities:
-  - logging, file validation, domain exceptions
+```
+┌─────────────────────────────────────────┐
+│  View  (JavaFX FXML + Controllers)      │  UI events, bindings, CSS
+├─────────────────────────────────────────┤
+│  ViewModel  (MainViewModel)             │  Orchestration, observable state
+├─────────────────────────────────────────┤
+│  Service  (BatchScanner, Cleaning)      │  File discovery, background tasks
+├─────────────────────────────────────────┤
+│  Core  (CleaningEngine + Handlers)      │  Format detection, metadata removal
+├─────────────────────────────────────────┤
+│  Model  (AppStateModel, records)        │  App state, options, results
+├─────────────────────────────────────────┤
+│  Utilities  (AppLogger, FileValidator)  │  Logging, validation, exceptions
+└─────────────────────────────────────────┘
+```
+
+### Key design decisions
+
+**Strategy pattern for format handlers** — each format implements `FormatHandler`. `CleaningEngine` iterates the registered handlers and calls `supports(path)` to find the right one. Adding a new format means adding one class and one registration line.
+
+**Immutable options snapshot** — `CleanOptions` is a Java record captured at the moment the cleaning task starts. The user can change UI toggles mid-run without affecting the active batch.
+
+**Magic-byte detection** — `FileValidator` reads the first 12 bytes of every file. Extension is only a pre-filter hint. A file must pass signature validation to be processed.
+
+**Manual dependency injection** — no DI framework. All wiring happens in `App.java` in a documented, ordered sequence. This keeps startup transparent and testable.
+
+**Thread safety** — the cleaning task runs on a single background thread. Every UI callback from that thread is wrapped in `Platform.runLater()`. `AppLogger` uses `AtomicReference` for its GUI sink and a `CopyOnWriteArrayList` for early-message buffering.
 
 ### Runtime flow
 
-1. App bootstrap loads FXML and registers GUI log sink early.
-2. MainViewModel coordinates dropped input scanning.
-3. CleaningService creates JavaFX Task with immutable options snapshot.
-4. CleaningEngine resolves a FormatHandler by signature support.
-5. Handler cleans and returns ProcessResult.
-6. ViewModel updates state-bound progress and status.
+```
+App.start()
+  └─ Load FXML → get MainWindowController
+  └─ Register GUI log sink (AppLogger)
+  └─ Construct: AppStateModel → CleaningEngine → Services → MainViewModel
+  └─ Inject ViewModel into controller hierarchy
 
-### Architecture references
+User drops files
+  └─ DropZoneController.onDragDropped()
+  └─ MainViewModel.handleDrop()
+  └─ BatchScannerService.scan() → List<FileEntry>
+  └─ AppStateModel.setLoadedFiles()
 
-- [ARCHITECTURE.md](ARCHITECTURE.md)
-- [Project_Architecture_Blueprint.md](Project_Architecture_Blueprint.md)
+User clicks Start
+  └─ MainViewModel.startCleaning()
+  └─ CleaningService.createCleaningTask() — snapshots CleanOptions
+  └─ Task submitted to single-thread ExecutorService
 
----
+Per file (background thread):
+  └─ Platform.runLater(onFileStart) → status = PROCESSING
+  └─ CleaningEngine.clean()
+       └─ resolveHandler() — iterates handlers, calls supports()
+       └─ handler.clean(input, output, options)
+       └─ returns ProcessResult
+  └─ Platform.runLater(onFileComplete) → status = DONE/FAILED/SKIPPED
+```
 
-## Project Structure
+### Project structure
 
-```text
-.
-|-- pom.xml
-|-- README.md
-|-- ARCHITECTURE.md
-|-- Project_Architecture_Blueprint.md
-`-- src
-    |-- main
-    |   |-- java/com/exifcleaner
-    |   |   |-- App.java
-    |   |   |-- AppConfig.java
-    |   |   |-- core/
-    |   |   |-- model/
-    |   |   |-- service/
-    |   |   |-- utilities/
-    |   |   |-- view/
-    |   |   `-- viewmodel/
-    |   `-- resources/
-    |       |-- logback.xml
-    |       `-- com/exifcleaner/{fxml,css}
-    `-- test/java/com/exifcleaner
+```
+exifcleaner/
+├── src/main/java/com/exifcleaner/
+│   ├── App.java                        # Entry point, dependency wiring
+│   ├── AppConfig.java                  # All constants and defaults
+│   ├── core/
+│   │   ├── formats/
+│   │   │   ├── FormatHandler.java      # Strategy interface
+│   │   │   ├── JpegHandler.java
+│   │   │   ├── PngHandler.java
+│   │   │   ├── TiffHandler.java
+│   │   │   ├── WebpHandler.java
+│   │   │   ├── HeicHandler.java
+│   │   │   ├── PdfHandler.java
+│   │   │   ├── BmpHandler.java
+│   │   │   ├── GifHandler.java
+│   │   │   └── RawHandler.java
+│   │   ├── CleaningEngine.java         # Handler resolution + output path
+│   │   ├── MetadataType.java           # EXIF, IPTC, XMP, THUMBNAIL
+│   │   └── OutputMode.java             # SAME_FOLDER, CUSTOM_FOLDER
+│   ├── model/
+│   │   ├── AppStateModel.java          # Observable application state
+│   │   ├── CleanOptions.java           # Immutable options record
+│   │   ├── FileEntry.java              # Queued file with status
+│   │   ├── FileStatus.java             # PENDING → PROCESSING → DONE/FAILED/SKIPPED
+│   │   └── ProcessResult.java          # Per-file outcome record
+│   ├── service/
+│   │   ├── BatchScannerService.java    # File discovery and validation
+│   │   └── CleaningService.java        # JavaFX Task factory
+│   ├── utilities/
+│   │   ├── errors/                     # Domain exceptions
+│   │   ├── AppLogger.java              # SLF4J + GUI sink facade
+│   │   └── FileValidator.java          # Magic-byte format detection
+│   ├── view/                           # JavaFX FXML controllers (6)
+│   └── viewmodel/
+│       └── MainViewModel.java          # UI orchestration layer
+├── src/main/resources/
+│   ├── com/exifcleaner/fxml/           # FXML layout files (6)
+│   ├── com/exifcleaner/css/theme.css   # Application stylesheet
+│   └── logback.xml                     # Logging configuration
+└── src/test/java/com/exifcleaner/
+    ├── core/formats/                   # Handler tests (9 classes)
+    ├── core/CleaningEngineTest.java
+    ├── service/                        # Service tests (2 classes)
+    └── utilities/                      # Utility tests (3 classes)
 ```
 
 ---
 
 ## Configuration
 
-### Application constants
+All constants live in `AppConfig.java`. Nothing is hardcoded elsewhere.
 
-Core defaults and limits are centralized in AppConfig, including:
-- supported extensions
-- batch-size cap
-- cleaned suffix
-- default metadata toggles
-- default output mode
+| Constant | Default | Description |
+|---|---|---|
+| `MAX_BATCH_SIZE` | `10,000` | Maximum files per batch |
+| `MAX_FILE_SIZE` | `500 MB` | Files larger than this are rejected |
+| `CLEANED_SUFFIX` | `_cleaned` | Appended before extension in SAME_FOLDER mode |
+| `DEFAULT_REMOVE_EXIF` | `true` | Initial state of EXIF toggle |
+| `DEFAULT_REMOVE_IPTC` | `true` | Initial state of IPTC toggle |
+| `DEFAULT_REMOVE_XMP` | `true` | Initial state of XMP toggle |
+| `DEFAULT_REMOVE_THUMBNAIL` | `true` | Initial state of Thumbnail toggle |
+| `DEFAULT_OUTPUT_MODE` | `SAME_FOLDER` | Initial output mode |
 
-### Logging
-
-Logback configuration:
-- [src/main/resources/logback.xml](src/main/resources/logback.xml)
-
-Default behavior:
-- console logging enabled
-- rolling file logs in user home directory
+Logging is configured in `src/main/resources/logback.xml`:
+- Rolling file log written to `~/exifcleaner.log` (max 10 MB per file, 7 days history, 50 MB total cap)
+- Console output enabled
+- Async file appender for non-blocking I/O
 
 ---
 
 ## Extending the Application
 
-### Add support for a new format
+### Add a new format
 
-1. Implement FormatHandler in core/formats.
-2. Implement robust supports(Path) signature logic.
-3. Implement clean(Path, Path, CleanOptions).
-4. Implement getMetadataSummary(Path).
-5. Register handler in App.createHandlers.
-6. Add handler-specific tests under src/test/java/com/exifcleaner/core/formats.
+1. Create `YourFormatHandler.java` in `core/formats/` implementing `FormatHandler`
+2. Implement `supports(Path)` using magic-byte detection via `FileValidator`
+3. Implement `clean(Path, Path, CleanOptions)` — enforce the 500 MB limit, write to `outputPath`, return a `ProcessResult`
+4. Implement `getMetadataSummary(Path)` using metadata-extractor (read-only)
+5. Register the handler in `App.createHandlers()` in the correct priority position
+6. Add the extension(s) to `AppConfig.SUPPORTED_EXTENSIONS`
+7. Write tests in `src/test/java/com/exifcleaner/core/formats/YourFormatHandlerTest.java`
 
-### Add a new cleaning option
+### Add a new metadata type
 
-1. Add state property in AppStateModel.
-2. Extend CleanOptions record.
-3. Bind UI control in appropriate controller.
-4. Update relevant handlers and tests.
+1. Add a value to `MetadataType`
+2. Add a `BooleanProperty` to `AppStateModel` with getter, setter, and default in `AppConfig`
+3. Add the field to the `CleanOptions` record
+4. Add a checkbox to `OptionsPanel.fxml` and bind it in `OptionsPanelController`
+5. Update the relevant `FormatHandler` implementations to honour the new option
+6. Update tests
 
 ---
 
 ## Troubleshooting
 
-### Build does not start
+**Build fails to start**
+```bash
+java -version   # must be 17+
+mvn -version    # must be 3.8+
+mvn clean install -U   # force re-download dependencies
+```
 
-- Check Java version: java -version
-- Check Maven version: mvn -version
-- Re-resolve dependencies: mvn clean install -U
+**JavaFX runtime error on launch**
+- Always launch via `mvn clean javafx:run`, not by running the JAR directly
+- The Maven plugin sets the required `--add-opens` JVM arguments automatically
 
-### JavaFX runtime issues
+**Files are skipped unexpectedly**
+- Check the log panel — every skip includes a reason
+- Confirm the file extension is in the supported list
+- Confirm the file's actual content matches its extension (magic-byte check)
+- Files over 500 MB are always rejected
 
-- Run through Maven plugin path: mvn clean javafx:run
-- Ensure JavaFX dependencies are resolved in local Maven cache
+**Batch takes a long time**
+- Processing is single-threaded by design (deterministic ordering)
+- For very large batches, split into smaller groups
+- The batch cap is 10,000 files — larger drops are truncated
 
-### Files are skipped unexpectedly
-
-- Confirm extension is supported
-- Confirm file signature matches the claimed format
-- Check log output for skip reason
-
-### Large batch behavior
-
-- Batch scanning is capped by configured max batch size
-- Use smaller input groups for faster feedback loops
+**Log file location**
+- `~/exifcleaner.log` (your home directory)
+- Rolls daily, keeps 7 days of history
 
 ---
 
 ## Known Limitations
 
-- **File size limit**: Files over 500MB are rejected to prevent memory issues
-- RAW handling is best-effort because vendor formats can carry proprietary metadata layouts.
-- Some HEIC operations may fall back to copy-oriented behavior depending on file structure.
-- Processing is intentionally single-worker for deterministic behavior over maximum throughput.
+- Files over **500 MB** are rejected to prevent out-of-memory errors
+- **RAW formats** (CR2, CR3, NEF, ARW, DNG) are best-effort — vendor-specific metadata blocks may survive
+- **HEIC/HEIF** falls back to a file copy if the container structure is not supported
+- Processing is **single-threaded** — throughput is limited but ordering is deterministic
+- The embedded thumbnail in JPEG lives inside the EXIF APP1 block; removing the thumbnail also removes EXIF (a warning is shown)
 
 ---
 
 ## Roadmap
 
-### Current
-
-- Multi-format support across image/document targets
-- Selective metadata removal
-- Batch processing and status reporting
-
-### Planned directions
-
-- deeper format coverage and edge-case handling
-- richer output/reporting options
-- packaging and distribution improvements
+- Deeper RAW format coverage
+- AVIF format support
+- Native installers (jpackage) for Windows, macOS, Linux
+- Richer per-file result reporting (bytes saved, metadata found)
+- Parallel processing option for large batches
 
 ---
 
 ## Contributing
 
-Contributions are welcome.
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide.
 
-Suggested workflow:
-1. Create a feature branch.
-2. Keep changes focused and tested.
-3. Run mvn test before opening a pull request.
-4. Include documentation updates for behavior changes.
+**Quick workflow:**
+```bash
+git checkout -b feature/your-feature
+# make changes, add tests
+mvn test                  # all 91 tests must pass
+mvn clean install         # full build must succeed
+# open a pull request
+```
+
+- Keep changes focused — one feature or fix per PR
+- Add tests for new behaviour
+- Update documentation for any behaviour changes
+- Follow the existing code style (4-space indent, Javadoc on public APIs, constants in `AppConfig`)
 
 ---
 
 ## Support
 
-- Open an issue for bugs and reproducible failures.
-- Include Java version, OS, sample steps, and relevant log output.
-- For architecture-level changes, update both ARCHITECTURE.md and Project_Architecture_Blueprint.md.
+- **Bug reports** — open an issue using the [bug report template](.github/ISSUE_TEMPLATE/bug_report.md); include Java version, OS, and the relevant log output
+- **Feature requests** — open an issue using the [feature request template](.github/ISSUE_TEMPLATE/feature_request.md)
+- **Security vulnerabilities** — see [SECURITY.md](SECURITY.md) for responsible disclosure instructions; do not open a public issue
 
 ---
 
 ## License
 
-This project is licensed under MIT.
+MIT — see [LICENSE](LICENSE) for the full text.
 
 ---
 
-## Acknowledgments
+## Acknowledgements
 
-- metadata-extractor
-- TwelveMonkeys ImageIO
-- Apache PDFBox
-- Apache Commons Imaging
-- OpenJFX
+| Library | Role |
+|---|---|
+| [metadata-extractor](https://github.com/drewnoakes/metadata-extractor) | Read-only metadata inspection in `getMetadataSummary()` |
+| [TwelveMonkeys ImageIO](https://github.com/haraldk/TwelveMonkeys) | Extended TIFF format support |
+| [Apache PDFBox](https://pdfbox.apache.org/) | PDF metadata removal |
+| [Apache Commons Imaging](https://commons.apache.org/proper/commons-imaging/) | HEIC/HEIF and extended RAW support |
+| [OpenJFX](https://openjfx.io/) | Desktop UI framework |
+| [SLF4J](https://www.slf4j.org/) + [Logback](https://logback.qos.ch/) | Logging |
+| [JUnit 5](https://junit.org/junit5/) + [Mockito](https://site.mockito.org/) | Testing |
