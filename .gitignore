@@ -37,6 +37,17 @@ desktop.ini
 *.tmp
 *.bak
 *~
-.amazonq/
-.github/
 
+# Code coverage reports
+.jacoco/
+*.exec
+
+# Security scan reports
+dependency-check-report.html
+
+# SpotBugs reports
+spotbugsXml.xml
+
+# PMD reports
+pmd.xml
+.github/

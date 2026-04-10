@@ -8,21 +8,36 @@
             <maxFileSize>10MB</maxFileSize>
             <maxHistory>7</maxHistory>
             <totalSizeCap>50MB</totalSizeCap>
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
         </rollingPolicy>
         <encoder>
-            <pattern>[%d{HH:mm:ss}] [%-5level] %logger{36} — %msg%n</pattern>
+            <pattern>[%d{HH:mm:ss.SSS}] [%-5level] [%thread] %logger{36} — %msg%n</pattern>
+            <charset>UTF-8</charset>
         </encoder>
     </appender>
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>[%d{HH:mm:ss}] [%-5level] %msg%n</pattern>
+            <pattern>[%d{HH:mm:ss.SSS}] [%-5level] %msg%n</pattern>
+            <charset>UTF-8</charset>
         </encoder>
     </appender>
 
+    <!-- Async appender for better performance -->
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="FILE" />
+        <queueSize>512</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>false</includeCallerData>
+    </appender>
+
     <root level="INFO">
-        <appender-ref ref="FILE"/>
+        <appender-ref ref="ASYNC_FILE"/>
         <appender-ref ref="CONSOLE"/>
     </root>
+
+    <!-- Reduce verbosity of third-party libraries -->
+    <logger name="org.apache.pdfbox" level="WARN"/>
+    <logger name="com.twelvemonkeys" level="WARN"/>
 
 </configuration>
