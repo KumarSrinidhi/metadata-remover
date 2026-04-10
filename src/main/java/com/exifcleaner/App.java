@@ -93,6 +93,7 @@ public class App extends Application {
         primaryStage.setWidth(AppConfig.MIN_WINDOW_WIDTH + 200);
         primaryStage.setHeight(AppConfig.MIN_WINDOW_HEIGHT + 100);
         primaryStage.setScene(scene);
+        applyIcon(primaryStage);
         primaryStage.show();
 
         AppLogger.info("UI initialised. Ready.");
@@ -118,6 +119,22 @@ public class App extends Application {
      */
     public static void main(String[] args) {
         launch(args);
+    }
+
+    /**
+     * Loads the application icon from resources, silently skipping if not found.
+     *
+     * @param stage the primary stage to apply the icon to
+     */
+    private void applyIcon(Stage stage) {
+        try {
+            var iconUrl = getClass().getResource("/com/exifcleaner/icons/app-icon.png");
+            if (iconUrl != null) {
+                stage.getIcons().add(new javafx.scene.image.Image(iconUrl.toExternalForm()));
+            }
+        } catch (Exception e) {
+            AppLogger.warn("Could not load application icon: " + e.getMessage());
+        }
     }
 
     /**

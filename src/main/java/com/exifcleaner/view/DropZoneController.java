@@ -5,6 +5,9 @@ import com.exifcleaner.viewmodel.MainViewModel;
 import javafx.fxml.FXML;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.StackPane;
 import javafx.stage.FileChooser;
@@ -46,6 +49,18 @@ public class DropZoneController {
         dropZoneRoot.setOnDragEntered(this::onDragEntered);
         dropZoneRoot.setOnDragExited(this::onDragExited);
         dropZoneRoot.setOnMouseClicked(e -> openFileBrowser());
+    }
+
+    /**
+     * Registers Ctrl+O keyboard shortcut on the scene.
+     * Called by MainWindowController after the scene is available.
+     */
+    public void registerKeyboardShortcuts() {
+        if (dropZoneRoot.getScene() == null) return;
+        dropZoneRoot.getScene().getAccelerators().put(
+            new KeyCodeCombination(KeyCode.O, KeyCombination.SHORTCUT_DOWN),
+            this::openFileBrowser
+        );
     }
 
     /**
@@ -109,18 +124,27 @@ public class DropZoneController {
     }
 
     /**
-     * Opens a FileChooser allowing multi-selection of supported image files.
+     * Opens a FileChooser allowing multi-selection of all supported image and document files.
      * Passes the selected files to the ViewModel.
      */
     private void openFileBrowser() {
         FileChooser chooser = new FileChooser();
-        chooser.setTitle("Select Images");
-        chooser.getExtensionFilters().add(
+        chooser.setTitle("Select Images or Documents");
+        chooser.getExtensionFilters().addAll(
             new FileChooser.ExtensionFilter(
-                "Image Files", "*.jpg", "*.jpeg", "*.png", "*.tiff", "*.tif")
-        );
-        chooser.getExtensionFilters().add(
-            new FileChooser.ExtensionFilter("All Files", "*.*")
+                "All Supported Files",
+                "*.jpg", "*.jpeg", "*.png", "*.tiff", "*.tif",
+                "*.webp", "*.heic", "*.heif",
+                "*.bmp", "*.gif", "*.pdf",
+                "*.cr2", "*.cr3", "*.nef", "*.arw", "*.dng"),
+            new FileChooser.ExtensionFilter("JPEG Images",  "*.jpg", "*.jpeg"),
+            new FileChooser.ExtensionFilter("PNG Images",   "*.png"),
+            new FileChooser.ExtensionFilter("TIFF Images",  "*.tiff", "*.tif"),
+            new FileChooser.ExtensionFilter("WebP Images",  "*.webp"),
+            new FileChooser.ExtensionFilter("HEIC / HEIF",  "*.heic", "*.heif"),
+            new FileChooser.ExtensionFilter("PDF Documents","*.pdf"),
+            new FileChooser.ExtensionFilter("RAW Files",    "*.cr2", "*.cr3", "*.nef", "*.arw", "*.dng"),
+            new FileChooser.ExtensionFilter("All Files",    "*.*")
         );
 
         List<File> files = chooser.showOpenMultipleDialog(dropZoneRoot.getScene().getWindow());

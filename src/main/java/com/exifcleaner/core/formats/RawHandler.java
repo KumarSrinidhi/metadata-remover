@@ -64,7 +64,7 @@ public class RawHandler implements FormatHandler {
                 }
                 long startMs = System.currentTimeMillis();
                 Files.copy(inputPath, outputPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                
+
                 List<String> warnings = new java.util.ArrayList<>();
                 warnings.add("RAW files are complex. CR3 format metadata stripping skipped. File copied exactly.");
 
@@ -80,10 +80,13 @@ public class RawHandler implements FormatHandler {
                     throw new IOException("File too large: " + inputSize + " bytes (max: " + MAX_FILE_SIZE + ")");
                 }
                 ProcessResult tiffResult = tiffHandler.clean(inputPath, outputPath, options);
-                
-                // Add the RAW warning to the result
-                tiffResult.warnings().add("RAW files are complex. Re-encoding may drop RAW-specific image data or alter format.");
-                return tiffResult;
+
+                // Build a new result with the RAW warning appended — warnings list is unmodifiable
+                List<String> warnings = new java.util.ArrayList<>(tiffResult.warnings());
+                warnings.add("RAW files are complex. Re-encoding may drop RAW-specific image data or alter format.");
+                return new ProcessResult(
+                    tiffResult.inputPath(), tiffResult.outputPath(), tiffResult.status(),
+                    tiffResult.bytesSaved(), tiffResult.processingTimeMs(), warnings, tiffResult.errorMessage());
             }
 
         } catch (UnsupportedFormatException | IOException e) {

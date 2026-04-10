@@ -89,25 +89,44 @@ public class CleaningEngine {
 
     /**
      * Computes the output path for a cleaned file based on the given options.
-     * This is a pure utility method — it does not perform any I/O.
+     * If the resolved path already exists, appends {@code _2}, {@code _3}, etc.
+     * This is a pure utility method — it does not perform any I/O beyond existence checks.
      *
      * @param inputPath the source file path
      * @param options   cleaning options specifying the output mode
-     * @return the resolved output path
+     * @return the resolved, collision-free output path
      */
     public static Path resolveOutputPath(Path inputPath, CleanOptions options) {
+        String filename = inputPath.getFileName().toString();
+        int dotIndex = filename.lastIndexOf('.');
+        String base = (dotIndex >= 0) ? filename.substring(0, dotIndex) : filename;
+        String ext  = (dotIndex >= 0) ? filename.substring(dotIndex) : "";
+
+        Path candidate;
         if (options.outputMode() == OutputMode.CUSTOM_FOLDER) {
             if (options.customOutputFolder() == null) {
                 throw new IllegalArgumentException(
                     "CUSTOM_FOLDER output mode requires customOutputFolder to be set");
             }
-            return options.customOutputFolder().resolve(inputPath.getFileName());
+            candidate = options.customOutputFolder().resolve(filename);
+        } else {
+            // SAME_FOLDER: insert _cleaned before the extension
+            candidate = inputPath.getParent().resolve(base + AppConfig.CLEANED_SUFFIX + ext);
         }
-        // SAME_FOLDER: insert _cleaned before the extension
-        String filename = inputPath.getFileName().toString();
-        int dotIndex = filename.lastIndexOf('.');
-        String base = (dotIndex >= 0) ? filename.substring(0, dotIndex) : filename;
-        String ext  = (dotIndex >= 0) ? filename.substring(dotIndex) : "";
-        return inputPath.getParent().resolve(base + AppConfig.CLEANED_SUFFIX + ext);
+
+        // Collision avoidance: append _2, _3, ... until the path is free
+        if (java.nio.file.Files.exists(candidate)) {
+            String cleanedBase = (options.outputMode() == OutputMode.CUSTOM_FOLDER)
+                ? base
+                : base + AppConfig.CLEANED_SUFFIX;
+            Path parent = candidate.getParent();
+            int counter = 2;
+            while (java.nio.file.Files.exists(candidate)) {
+                candidate = parent.resolve(cleanedBase + "_" + counter + ext);
+                counter++;
+            }
+        }
+
+        return candidate;
     }
 }

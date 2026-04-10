@@ -160,8 +160,9 @@ public class FileListController {
 
     /**
      * Removes the currently selected row from the loaded files list.
+     * Also called by the Delete keyboard shortcut registered in MainWindowController.
      */
-    private void removeSelected() {
+    void removeSelected() {
         FileEntry selected = fileTable.getSelectionModel().getSelectedItem();
         if (selected != null) {
             viewModel.getLoadedFiles().remove(selected);

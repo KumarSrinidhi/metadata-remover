@@ -23,7 +23,7 @@
         <Label text="or click to browse" styleClass="drop-zone-sublabel"/>
 
         <!-- Supported formats hint -->
-        <Label text="Supports: JPEG · PNG · TIFF (detected by file header)"
+        <Label text="JPEG · PNG · TIFF · WebP · HEIC · PDF · BMP · GIF · RAW"
                styleClass="label-secondary"/>
     </VBox>
 

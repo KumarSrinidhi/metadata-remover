@@ -4,6 +4,9 @@ import com.exifcleaner.viewmodel.MainViewModel;
 import javafx.beans.binding.Bindings;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
@@ -42,6 +45,13 @@ public class MainWindowController {
         progressPanelController.setViewModel(viewModel);
         bindButtons();
         bindCenterSwitch();
+        // Register keyboard shortcuts after scene is attached
+        btnStartCleaning.sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene != null) {
+                registerKeyboardShortcuts(newScene);
+                dropZoneController.registerKeyboardShortcuts();
+            }
+        });
     }
 
     /**
@@ -51,6 +61,36 @@ public class MainWindowController {
      */
     public LogPanelController getLogPanelController() {
         return logPanelController;
+    }
+
+    /**
+     * Registers global keyboard shortcuts on the scene.
+     * <ul>
+     *   <li>Space / Enter — Start cleaning (when not processing)</li>
+     *   <li>Escape — Cancel active cleaning</li>
+     *   <li>Delete — Remove selected file from list</li>
+     *   <li>Ctrl+Shift+C — Clear all files</li>
+     * </ul>
+     *
+     * @param scene the application scene
+     */
+    private void registerKeyboardShortcuts(javafx.scene.Scene scene) {
+        scene.getAccelerators().put(
+            new KeyCodeCombination(KeyCode.ENTER),
+            () -> { if (!btnStartCleaning.isDisabled()) viewModel.startCleaning(); }
+        );
+        scene.getAccelerators().put(
+            new KeyCodeCombination(KeyCode.ESCAPE),
+            viewModel::cancelCleaning
+        );
+        scene.getAccelerators().put(
+            new KeyCodeCombination(KeyCode.DELETE),
+            fileListController::removeSelected
+        );
+        scene.getAccelerators().put(
+            new KeyCodeCombination(KeyCode.C, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN),
+            () -> { if (!btnClearAll.isDisabled()) viewModel.clearAll(); }
+        );
     }
 
     /**

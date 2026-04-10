@@ -36,9 +36,15 @@
                   alignment="CENTER_RIGHT" spacing="10">
                 <padding><Insets top="10" right="16" bottom="10" left="16"/></padding>
 
-                <Button fx:id="btnClearAll"     text="Clear All"      styleClass="btn-secondary"/>
-                <Button fx:id="btnCancel"        text="Cancel"         styleClass="btn-cancel"/>
-                <Button fx:id="btnStartCleaning" text="▶  Start Cleaning" styleClass="btn-primary"/>
+                <Button fx:id="btnClearAll"     text="Clear All"         styleClass="btn-secondary">
+                    <tooltip><Tooltip text="Clear all files  (Ctrl+Shift+C)"/></tooltip>
+                </Button>
+                <Button fx:id="btnCancel"        text="Cancel"            styleClass="btn-cancel">
+                    <tooltip><Tooltip text="Cancel processing  (Esc)"/></tooltip>
+                </Button>
+                <Button fx:id="btnStartCleaning" text="▶  Start Cleaning"  styleClass="btn-primary">
+                    <tooltip><Tooltip text="Start cleaning  (Enter)"/></tooltip>
+                </Button>
             </HBox>
         </VBox>
     </bottom>

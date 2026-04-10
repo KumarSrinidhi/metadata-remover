@@ -93,10 +93,20 @@ public class OptionsPanelController {
 
         btnPickFolder.setOnAction(e -> pickCustomFolder());
 
-        // Reflect existing custom folder in text field
+        // Reflect existing custom folder in text field (including restored preference)
+        Path existing = viewModel.customOutputFolderProperty().get();
+        if (existing != null) {
+            txtCustomFolder.setText(existing.toString());
+            radioCustomFolder.setSelected(true);
+        }
         viewModel.customOutputFolderProperty().addListener((obs, oldVal, newVal) -> {
             txtCustomFolder.setText(newVal != null ? newVal.toString() : "");
         });
+
+        // Reflect restored output mode
+        if (viewModel.outputModeProperty().get() == com.exifcleaner.core.OutputMode.CUSTOM_FOLDER) {
+            radioCustomFolder.setSelected(true);
+        }
     }
 
     /**

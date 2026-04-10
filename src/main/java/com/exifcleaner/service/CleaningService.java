@@ -57,6 +57,7 @@ public class CleaningService {
         return new Task<>() {
             /**
              * Executes the batch cleaning loop on a background thread.
+             * Progress is weighted by file size for accurate ETA estimation.
              *
              * @return ordered processing results for all attempted files
              */
@@ -65,8 +66,22 @@ public class CleaningService {
                 List<ProcessResult> results = new ArrayList<>();
                 int total = files.size();
 
+                // Pre-compute file sizes for byte-weighted progress
+                long[] fileSizes = new long[total];
+                long totalBytes = 0;
+                for (int i = 0; i < total; i++) {
+                    try {
+                        fileSizes[i] = java.nio.file.Files.size(files.get(i).path());
+                    } catch (java.io.IOException e) {
+                        fileSizes[i] = 1; // fallback: treat as 1 byte
+                    }
+                    totalBytes += fileSizes[i];
+                }
+                final long totalBytesForProgress = totalBytes > 0 ? totalBytes : 1;
+
                 AppLogger.info("Cleaning started: " + total + " file(s)");
 
+                long bytesProcessed = 0;
                 for (int i = 0; i < total; i++) {
                     if (isCancelled()) {
                         AppLogger.info("Cleaning cancelled after " + i + " file(s)");
@@ -77,14 +92,16 @@ public class CleaningService {
                     FileEntry entry = files.get(i);
                     Platform.runLater(() -> onFileStart.accept(entry));
                     updateMessage(entry.path().getFileName().toString());
-                    updateProgress(i + 1, total);
+                    updateProgress(bytesProcessed, totalBytesForProgress);
 
                     ProcessResult result = processFile(entry, options);
                     results.add(result);
+                    bytesProcessed += fileSizes[i];
+                    updateProgress(bytesProcessed, totalBytesForProgress);
                     Platform.runLater(() -> onFileComplete.accept(result));
                 }
 
-                updateProgress(total, total);
+                updateProgress(totalBytesForProgress, totalBytesForProgress);
                 updateMessage("Done");
                 AppLogger.info("Cleaning complete: " + results.size() + " file(s) processed");
                 return results;

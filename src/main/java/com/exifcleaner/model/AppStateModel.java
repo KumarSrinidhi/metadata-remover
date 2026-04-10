@@ -9,51 +9,73 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
+import java.util.prefs.Preferences;
 
 /**
  * Single source of truth for all mutable application state.
  * All state is stored as JavaFX Property objects enabling reactive data binding.
+ * User preferences (toggles, output mode, last folder) are persisted via
+ * {@link Preferences} and restored on construction.
  *
  * <p>Controllers and services must never maintain their own copies of this state.
  * All reads and writes must go through this class.
  */
 public class AppStateModel {
 
+    // ── Preferences keys ────────────────────────────────────────────────────
+    private static final Preferences PREFS =
+        Preferences.userNodeForPackage(AppStateModel.class);
+
+    private static final String PREF_REMOVE_EXIF       = "removeExif";
+    private static final String PREF_REMOVE_IPTC       = "removeIptc";
+    private static final String PREF_REMOVE_XMP        = "removeXmp";
+    private static final String PREF_REMOVE_THUMBNAIL  = "removeThumbnail";
+    private static final String PREF_OUTPUT_MODE       = "outputMode";
+    private static final String PREF_CUSTOM_FOLDER     = "customOutputFolder";
+    private static final String PREF_STD_IMAGES        = "processStandardImages";
+    private static final String PREF_HEIC              = "processHeic";
+    private static final String PREF_PDF               = "processPdf";
+    private static final String PREF_RAW               = "processRaw";
+
+    // ── Observable state ────────────────────────────────────────────────────
+
     private final ObservableList<FileEntry> loadedFiles =
         FXCollections.observableArrayList();
 
     private final ObjectProperty<OutputMode> outputMode =
-        new SimpleObjectProperty<>(AppConfig.DEFAULT_OUTPUT_MODE);
+        new SimpleObjectProperty<>(restoreOutputMode());
 
     private final ObjectProperty<Path> customOutputFolder =
-        new SimpleObjectProperty<>(null);
+        new SimpleObjectProperty<>(restoreCustomFolder());
 
     private final BooleanProperty removeExif =
-        new SimpleBooleanProperty(AppConfig.DEFAULT_REMOVE_EXIF);
+        new SimpleBooleanProperty(PREFS.getBoolean(PREF_REMOVE_EXIF, AppConfig.DEFAULT_REMOVE_EXIF));
 
     private final BooleanProperty removeIptc =
-        new SimpleBooleanProperty(AppConfig.DEFAULT_REMOVE_IPTC);
+        new SimpleBooleanProperty(PREFS.getBoolean(PREF_REMOVE_IPTC, AppConfig.DEFAULT_REMOVE_IPTC));
 
     private final BooleanProperty removeXmp =
-        new SimpleBooleanProperty(AppConfig.DEFAULT_REMOVE_XMP);
+        new SimpleBooleanProperty(PREFS.getBoolean(PREF_REMOVE_XMP, AppConfig.DEFAULT_REMOVE_XMP));
 
     private final BooleanProperty removeThumbnail =
-        new SimpleBooleanProperty(AppConfig.DEFAULT_REMOVE_THUMBNAIL);
+        new SimpleBooleanProperty(PREFS.getBoolean(PREF_REMOVE_THUMBNAIL, AppConfig.DEFAULT_REMOVE_THUMBNAIL));
 
     private final BooleanProperty processStandardImages =
-        new SimpleBooleanProperty(true);
+        new SimpleBooleanProperty(PREFS.getBoolean(PREF_STD_IMAGES, true));
 
     private final BooleanProperty processHeic =
-        new SimpleBooleanProperty(true);
+        new SimpleBooleanProperty(PREFS.getBoolean(PREF_HEIC, true));
 
     private final BooleanProperty processPdf =
-        new SimpleBooleanProperty(true);
+        new SimpleBooleanProperty(PREFS.getBoolean(PREF_PDF, true));
 
     private final BooleanProperty processRaw =
-        new SimpleBooleanProperty(true);
+        new SimpleBooleanProperty(PREFS.getBoolean(PREF_RAW, true));
 
     private final BooleanProperty isProcessing =
         new SimpleBooleanProperty(false);
@@ -61,7 +83,49 @@ public class AppStateModel {
     private final ObservableList<ProcessResult> results =
         FXCollections.observableArrayList();
 
-    // ── loadedFiles ──────────────────────────────────────────────────────────
+    /**
+     * Constructs AppStateModel, restoring persisted preferences, and wires
+     * change listeners so every toggle change is saved immediately.
+     */
+    public AppStateModel() {
+        // Persist every toggle change immediately
+        removeExif.addListener((o, ov, nv)      -> PREFS.putBoolean(PREF_REMOVE_EXIF, nv));
+        removeIptc.addListener((o, ov, nv)      -> PREFS.putBoolean(PREF_REMOVE_IPTC, nv));
+        removeXmp.addListener((o, ov, nv)       -> PREFS.putBoolean(PREF_REMOVE_XMP, nv));
+        removeThumbnail.addListener((o, ov, nv) -> PREFS.putBoolean(PREF_REMOVE_THUMBNAIL, nv));
+        processStandardImages.addListener((o, ov, nv) -> PREFS.putBoolean(PREF_STD_IMAGES, nv));
+        processHeic.addListener((o, ov, nv)     -> PREFS.putBoolean(PREF_HEIC, nv));
+        processPdf.addListener((o, ov, nv)      -> PREFS.putBoolean(PREF_PDF, nv));
+        processRaw.addListener((o, ov, nv)      -> PREFS.putBoolean(PREF_RAW, nv));
+        outputMode.addListener((o, ov, nv) -> {
+            if (nv != null) PREFS.put(PREF_OUTPUT_MODE, nv.name());
+        });
+        customOutputFolder.addListener((o, ov, nv) -> {
+            if (nv != null) PREFS.put(PREF_CUSTOM_FOLDER, nv.toString());
+            else            PREFS.remove(PREF_CUSTOM_FOLDER);
+        });
+    }
+
+    // ── Preference restore helpers ───────────────────────────────────────────
+
+    private static OutputMode restoreOutputMode() {
+        String saved = PREFS.get(PREF_OUTPUT_MODE, AppConfig.DEFAULT_OUTPUT_MODE.name());
+        try {
+            return OutputMode.valueOf(saved);
+        } catch (IllegalArgumentException e) {
+            return AppConfig.DEFAULT_OUTPUT_MODE;
+        }
+    }
+
+    private static Path restoreCustomFolder() {
+        String saved = PREFS.get(PREF_CUSTOM_FOLDER, null);
+        if (saved == null || saved.isBlank()) return null;
+        try {
+            return Paths.get(saved);
+        } catch (InvalidPathException e) {
+            return null;
+        }
+    }
 
     /**
      * Returns the observable list of queued files (mutable, for binding).
