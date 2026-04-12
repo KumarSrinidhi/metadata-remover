@@ -35,6 +35,7 @@
                 <items>
                     <MenuItem fx:id="menuRemove"       text="Remove from list"/>
                     <MenuItem fx:id="menuOpenLocation" text="Open file location"/>
+                    <MenuItem fx:id="menuCompareBeforeAfter" text="Compare before / after"/>
                 </items>
             </ContextMenu>
         </contextMenu>

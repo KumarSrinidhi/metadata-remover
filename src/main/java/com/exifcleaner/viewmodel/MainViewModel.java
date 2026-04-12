@@ -21,6 +21,8 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
@@ -233,6 +235,32 @@ public class MainViewModel {
 
     /** @return results from the last completed batch */
     public ObservableList<ProcessResult> getResults() { return state.getResults(); }
+
+    /**
+     * Finds the most recent processing result for the given source file path.
+     *
+     * @param inputPath source file path
+     * @return matching result if present
+     */
+    public Optional<ProcessResult> findResultForInput(Path inputPath) {
+        for (int i = state.getResults().size() - 1; i >= 0; i--) {
+            ProcessResult result = state.getResults().get(i);
+            if (result.inputPath().equals(inputPath)) {
+                return Optional.of(result);
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Returns a metadata summary map for the given file path.
+     *
+     * @param path file path to inspect
+     * @return metadata key/value map (possibly empty)
+     */
+    public Map<String, String> getMetadataSummary(Path path) {
+        return cleaningService.getMetadataSummary(path);
+    }
 
     // ── Private helpers ──────────────────────────────────────────────────────
 

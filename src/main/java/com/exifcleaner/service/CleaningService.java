@@ -15,6 +15,7 @@ import javafx.concurrent.Task;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -33,6 +34,23 @@ public class CleaningService {
      */
     public CleaningService(CleaningEngine engine) {
         this.engine = engine;
+    }
+
+    /**
+     * Retrieves a readable metadata summary for a file.
+     * Returns an empty map when metadata cannot be read for the format.
+     *
+     * @param path file path to inspect
+     * @return metadata map (possibly empty)
+     */
+    public Map<String, String> getMetadataSummary(Path path) {
+        try {
+            return engine.getMetadataSummary(path);
+        } catch (UnsupportedFormatException e) {
+            AppLogger.warn("Metadata summary unavailable for: "
+                + AppLogger.sanitize(String.valueOf(path.getFileName())));
+            return Map.of();
+        }
     }
 
     /**

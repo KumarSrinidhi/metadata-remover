@@ -1,10 +1,5 @@
 package com.exifcleaner.core.formats;
 
-import com.drew.imaging.ImageMetadataReader;
-import com.drew.imaging.ImageProcessingException;
-import com.drew.metadata.Directory;
-import com.drew.metadata.Metadata;
-import com.drew.metadata.Tag;
 import com.exifcleaner.AppConfig;
 import com.exifcleaner.model.CleanOptions;
 import com.exifcleaner.model.FileStatus;
@@ -12,6 +7,7 @@ import com.exifcleaner.model.ProcessResult;
 import com.exifcleaner.utilities.AppLogger;
 import com.exifcleaner.utilities.FileValidator;
 import com.exifcleaner.utilities.errors.MetadataRemovalException;
+import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDDocumentInformation;
@@ -119,25 +115,53 @@ public class PdfHandler implements FormatHandler {
 
     /**
      * {@inheritDoc}
-     * Uses metadata-extractor (READ-ONLY) to enumerate all metadata tags for display.
+     * Uses PDFBox in read-only mode to enumerate PDF metadata for display.
      */
     @Override
     public Map<String, String> getMetadataSummary(Path path) {
         Map<String, String> summary = new LinkedHashMap<>();
-        try {
-            Path safePath = FileValidator.validateInputPath(path);
-            Metadata metadata = ImageMetadataReader.readMetadata(
-                safePath.toFile());
-            for (Directory directory : metadata.getDirectories()) {
-                for (Tag tag : directory.getTags()) {
-                    String key = directory.getName() + " / " + tag.getTagName();
-                    summary.put(key, tag.getDescription());
+        try (PDDocument document = Loader.loadPDF(FileValidator.validateInputPath(path).toFile())) {
+            summary.put("PDF / Page Count", String.valueOf(document.getNumberOfPages()));
+            summary.put("PDF / Version", String.valueOf(document.getVersion()));
+            summary.put("PDF / Encrypted", document.isEncrypted() ? "Yes" : "No");
+
+            PDDocumentInformation info = document.getDocumentInformation();
+            if (info != null) {
+                putIfNotBlank(summary, "DocumentInfo / Title", info.getTitle());
+                putIfNotBlank(summary, "DocumentInfo / Author", info.getAuthor());
+                putIfNotBlank(summary, "DocumentInfo / Subject", info.getSubject());
+                putIfNotBlank(summary, "DocumentInfo / Keywords", info.getKeywords());
+                putIfNotBlank(summary, "DocumentInfo / Creator", info.getCreator());
+                putIfNotBlank(summary, "DocumentInfo / Producer", info.getProducer());
+                if (info.getCreationDate() != null) {
+                    summary.put("DocumentInfo / CreationDate", info.getCreationDate().getTime().toString());
+                }
+                if (info.getModificationDate() != null) {
+                    summary.put("DocumentInfo / ModificationDate", info.getModificationDate().getTime().toString());
+                }
+                for (String key : info.getMetadataKeys()) {
+                    putIfNotBlank(summary, "DocumentInfo / " + key, info.getCustomMetadataValue(key));
                 }
             }
-        } catch (ImageProcessingException | IOException e) {
+
+            boolean hasInfoDict = document.getDocument() != null
+                && document.getDocument().getTrailer() != null
+                && document.getDocument().getTrailer().getDictionaryObject(COSName.INFO) != null;
+            summary.put("PDF Trailer / Info Dictionary", hasInfoDict ? "Present" : "Missing");
+
+            boolean hasXmp = document.getDocumentCatalog() != null
+                && document.getDocumentCatalog().getMetadata() != null;
+            summary.put("PDF Catalog / XMP Metadata", hasXmp ? "Present" : "Missing");
+        } catch (IOException e) {
             AppLogger.warn("Could not read metadata summary for: "
                 + AppLogger.sanitize(String.valueOf(path.getFileName())));
         }
         return summary;
+    }
+
+    private void putIfNotBlank(Map<String, String> summary, String key, String value) {
+        if (value != null && !value.isBlank()) {
+            summary.put(key, value);
+        }
     }
 }
