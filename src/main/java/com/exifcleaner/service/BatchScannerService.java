@@ -65,7 +65,8 @@ public class BatchScannerService {
         }
 
         if (!Files.isDirectory(path)) {
-            AppLogger.warn("Skipped (not a file or directory): " + path);
+            AppLogger.warn("Skipped (not a file or directory): "
+                + AppLogger.sanitize(String.valueOf(path)));
             return;
         }
 
@@ -96,12 +97,14 @@ public class BatchScannerService {
                  */
                 @Override
                 public FileVisitResult visitFileFailed(Path file, IOException exc) {
-                    AppLogger.warn("Cannot access file: " + file + " — " + exc.getMessage());
+                    String safePath = AppLogger.sanitize(String.valueOf(file));
+                    String safeError = AppLogger.sanitize(String.valueOf(exc.getMessage()));
+                    AppLogger.warn("Cannot access file: " + safePath + " - " + safeError);
                     return FileVisitResult.CONTINUE;
                 }
             });
         } catch (IOException e) {
-            AppLogger.error("Failed to walk directory: " + path, e);
+            AppLogger.error("Failed to walk directory: " + AppLogger.sanitize(String.valueOf(path)), e);
         }
     }
 
@@ -131,8 +134,9 @@ public class BatchScannerService {
 
             entries.add(new FileEntry(absolute, displayFormat, FileStatus.PENDING));
         } catch (UnsupportedFormatException | IOException e) {
-            AppLogger.warn("Skipped (detection failed): " + file.getFileName()
-                + " — " + e.getMessage());
+            String safeName = AppLogger.sanitize(String.valueOf(file.getFileName()));
+            String safeError = AppLogger.sanitize(String.valueOf(e.getMessage()));
+            AppLogger.warn("Skipped (detection failed): " + safeName + " - " + safeError);
         }
     }
 

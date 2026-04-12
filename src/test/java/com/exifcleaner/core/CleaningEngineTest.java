@@ -90,6 +90,44 @@ class CleaningEngineTest {
         assertEquals("photo.jpg", out.getFileName().toString());
     }
 
+    @Test
+    void resolveOutputPath_sameFolder_whenCollision_appendsCounter() throws Exception {
+        Path input = tempDir.resolve("photo.jpg");
+        Files.write(input, new byte[0]);
+        Path existing = tempDir.resolve("photo_cleaned.jpg");
+        Files.write(existing, new byte[0]);
+
+        CleanOptions opts = new CleanOptions(true, true, true, true, OutputMode.SAME_FOLDER, null);
+        Path out = CleaningEngine.resolveOutputPath(input, opts);
+
+        assertEquals("photo_cleaned_2.jpg", out.getFileName().toString());
+    }
+
+    @Test
+    void resolveOutputPath_customFolder_whenCollision_appendsCounter() throws Exception {
+        Path input = tempDir.resolve("photo.jpg");
+        Files.write(input, new byte[0]);
+        Path custom = tempDir.resolve("custom");
+        Files.createDirectories(custom);
+        Path existing = custom.resolve("photo.jpg");
+        Files.write(existing, new byte[0]);
+
+        CleanOptions opts = new CleanOptions(true, true, true, true, OutputMode.CUSTOM_FOLDER, custom);
+        Path out = CleaningEngine.resolveOutputPath(input, opts);
+
+        assertEquals("photo_2.jpg", out.getFileName().toString());
+        assertEquals(custom, out.getParent());
+    }
+
+    @Test
+    void resolveOutputPath_customFolderMissing_throwsIllegalArgumentException() {
+        Path input = tempDir.resolve("photo.jpg");
+        CleanOptions opts = new CleanOptions(true, true, true, true, OutputMode.CUSTOM_FOLDER, null);
+
+        assertThrows(IllegalArgumentException.class,
+            () -> CleaningEngine.resolveOutputPath(input, opts));
+    }
+
     // ── Helpers ────────────────────────────────────────────────────────
 
     private CleanOptions allOn() {
@@ -97,20 +135,19 @@ class CleaningEngineTest {
     }
 
     private Path createJpeg(String name) throws Exception {
-        Path path = tempDir.resolve(name);
-        BufferedImage img = new BufferedImage(10, 10, BufferedImage.TYPE_INT_RGB);
-        Graphics2D g = img.createGraphics();
-        g.setColor(Color.BLUE); g.fillRect(0, 0, 10, 10); g.dispose();
-        ImageIO.write(img, "jpg", path.toFile());
-        return path;
+        return createSolidImage(name, "jpg", Color.BLUE);
     }
 
     private Path createPng(String name) throws Exception {
+        return createSolidImage(name, "png", Color.GREEN);
+    }
+
+    private Path createSolidImage(String name, String format, Color color) throws Exception {
         Path path = tempDir.resolve(name);
         BufferedImage img = new BufferedImage(10, 10, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = img.createGraphics();
-        g.setColor(Color.GREEN); g.fillRect(0, 0, 10, 10); g.dispose();
-        ImageIO.write(img, "png", path.toFile());
+        g.setColor(color); g.fillRect(0, 0, 10, 10); g.dispose();
+        ImageIO.write(img, format, path.toFile());
         return path;
     }
 }

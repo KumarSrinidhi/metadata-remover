@@ -2,6 +2,7 @@ package com.exifcleaner.model;
 
 import com.exifcleaner.AppConfig;
 import com.exifcleaner.core.OutputMode;
+import com.exifcleaner.utilities.AppLogger;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -113,6 +114,9 @@ public class AppStateModel {
         try {
             return OutputMode.valueOf(saved);
         } catch (IllegalArgumentException e) {
+            AppLogger.warn("Invalid persisted output mode; using default: "
+                + AppLogger.sanitize(saved)
+                + " (reason: " + AppLogger.sanitize(String.valueOf(e.getMessage())) + ")");
             return AppConfig.DEFAULT_OUTPUT_MODE;
         }
     }
@@ -123,6 +127,9 @@ public class AppStateModel {
         try {
             return Paths.get(saved);
         } catch (InvalidPathException e) {
+            AppLogger.warn("Invalid persisted custom output folder ignored: "
+                + AppLogger.sanitize(saved)
+                + " (reason: " + AppLogger.sanitize(String.valueOf(e.getMessage())) + ")");
             return null;
         }
     }

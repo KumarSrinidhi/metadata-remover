@@ -10,9 +10,9 @@ import javafx.stage.FileChooser;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
 
 /**
  * Controller for LogPanel.fxml.
@@ -28,10 +28,11 @@ public class LogPanelController {
     @FXML private Button     btnExportLog;
 
     private static final DateTimeFormatter TIME_FMT =
-        DateTimeFormatter.ofPattern("HH:mm:ss");
+        DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM);
 
     /** FXML initialize — wires button actions. */
     @FXML
+    @SuppressWarnings("PMD.UnusedPrivateMethod")
     private void initialize() {
         btnCopyLog.setOnAction(e -> copyLog());
         btnClearLog.setOnAction(e -> logArea.clear());

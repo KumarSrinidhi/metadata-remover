@@ -14,7 +14,6 @@ import com.exifcleaner.utilities.FileValidator;
 import com.exifcleaner.utilities.errors.MetadataRemovalException;
 
 import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -25,7 +24,6 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.zip.CRC32;
 
 /**
  * Format handler for PNG images.
@@ -72,15 +70,19 @@ public class PngHandler implements FormatHandler {
         List<String> warnings = new ArrayList<>();
 
         try {
-            long inputSize = Files.size(inputPath);
+            Path safeInput = inputPath.toAbsolutePath().normalize();
+            Path safeOutput = outputPath.toAbsolutePath().normalize();
+            long inputSize = Files.size(safeInput);
             if (inputSize > MAX_FILE_SIZE) {
                 throw new IOException("File too large: " + inputSize + " bytes (max: " + MAX_FILE_SIZE + ")");
             }
-            byte[] cleaned = filterPngChunks(inputPath, options, warnings);
-            Files.write(outputPath, cleaned);
+            byte[] cleaned = filterPngChunks(safeInput, options);
+            FileValidator.validateOutputPath(safeOutput);
+            Files.write(safeOutput, cleaned);
             long bytesSaved = inputSize - cleaned.length;
+            String safeName = AppLogger.sanitize(String.valueOf(safeInput.getFileName()));
 
-            AppLogger.info("Cleaned PNG: " + inputPath.getFileName()
+            AppLogger.info("Cleaned PNG: " + safeName
                 + " (" + bytesSaved + " bytes saved)");
 
             return new ProcessResult(
@@ -88,9 +90,10 @@ public class PngHandler implements FormatHandler {
                 bytesSaved, System.currentTimeMillis() - startMs, warnings, null);
 
         } catch (IOException e) {
-            AppLogger.error("Failed to clean PNG: " + inputPath.getFileName(), e);
+            String safeName = AppLogger.sanitize(String.valueOf(inputPath.getFileName()));
+            AppLogger.error("Failed to clean PNG: " + safeName, e);
             throw new MetadataRemovalException(
-                "Failed to clean PNG: " + inputPath.getFileName() + ": " + e.getMessage(), e);
+                "Failed to clean PNG: " + safeName + ": " + e.getMessage(), e);
         }
     }
 
@@ -103,8 +106,7 @@ public class PngHandler implements FormatHandler {
      * @return the cleaned PNG bytes
      * @throws IOException if the file is unreadable or malformed
      */
-    private byte[] filterPngChunks(Path inputPath, CleanOptions options,
-            List<String> warnings) throws IOException {
+    private byte[] filterPngChunks(Path inputPath, CleanOptions options) throws IOException {
 
         byte[] input = Files.readAllBytes(inputPath);
 
@@ -178,12 +180,14 @@ public class PngHandler implements FormatHandler {
     private void writeChunk(ByteArrayOutputStream out, String chunkType,
             byte[] data, byte[] crc) throws IOException {
 
-        DataOutputStream dos = new DataOutputStream(out);
-        dos.writeInt(data.length);
-        dos.write(chunkType.getBytes(java.nio.charset.StandardCharsets.US_ASCII));
-        dos.write(data);
-        dos.write(crc);
-        dos.flush();
+        // Write length (4 bytes, big-endian)
+        out.write((data.length >> 24) & 0xFF);
+        out.write((data.length >> 16) & 0xFF);
+        out.write((data.length >> 8) & 0xFF);
+        out.write(data.length & 0xFF);
+        out.write(chunkType.getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+        out.write(data);
+        out.write(crc);
     }
 
     /**
@@ -194,7 +198,8 @@ public class PngHandler implements FormatHandler {
     public Map<String, String> getMetadataSummary(Path path) {
         Map<String, String> summary = new LinkedHashMap<>();
         try {
-            Metadata metadata = ImageMetadataReader.readMetadata(path.toFile());
+            Metadata metadata = ImageMetadataReader.readMetadata(
+                path.toAbsolutePath().normalize().toFile());
             for (Directory directory : metadata.getDirectories()) {
                 for (Tag tag : directory.getTags()) {
                     String key = directory.getName() + " / " + tag.getTagName();
@@ -202,7 +207,8 @@ public class PngHandler implements FormatHandler {
                 }
             }
         } catch (ImageProcessingException | IOException e) {
-            AppLogger.warn("Could not read metadata summary for: " + path.getFileName());
+            AppLogger.warn("Could not read metadata summary for: "
+                + AppLogger.sanitize(String.valueOf(path.getFileName())));
         }
         return summary;
     }

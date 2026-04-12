@@ -26,6 +26,50 @@ public final class FileValidator {
     }
 
     /**
+     * Validates that an output path does not escape its intended parent directory.
+     * Guards against CWE-22/23 path traversal via crafted filenames.
+     *
+     * @param outputPath the resolved output path to validate
+     * @throws IOException if the path traverses outside its parent directory
+     */
+    public static void validateOutputPath(Path outputPath) throws IOException {
+        Path normalized = outputPath.toAbsolutePath().normalize();
+        Path parent = normalized.getParent();
+        if (parent == null || !normalized.startsWith(parent)) {
+            throw new IOException(
+                "Path traversal detected: output path escapes target directory: " + outputPath);
+        }
+        String filename = normalized.getFileName().toString();
+        if (filename.contains("/") || filename.contains("\\") || filename.contains("..")) {
+            throw new IOException(
+                "Path traversal detected: illegal filename component: " + filename);
+        }
+    }
+
+    /**
+     * Validates and normalizes an input file path before any read operation.
+     * Guards against path traversal style inputs and non-file targets.
+     *
+     * @param inputPath file path to validate
+     * @return normalized absolute path
+     * @throws IOException if invalid or not a regular file
+     */
+    public static Path validateInputPath(Path inputPath) throws IOException {
+        if (inputPath == null) {
+            throw new IOException("Path cannot be null");
+        }
+        Path normalized = inputPath.toAbsolutePath().normalize();
+        String raw = inputPath.toString();
+        if (raw.contains("..") || raw.contains("\u0000")) {
+            throw new IOException("Path traversal detected in input path: " + inputPath);
+        }
+        if (!Files.isRegularFile(normalized)) {
+            throw new IOException("Input path is not a regular file: " + normalized.getFileName());
+        }
+        return normalized;
+    }
+
+    /**
      * Detects the image format of the given file by reading its magic bytes.
      *
      * @param path the file to inspect
@@ -34,14 +78,11 @@ public final class FileValidator {
      * @throws IOException                if the file cannot be read
      */
     public static ImageFormat detect(Path path) throws UnsupportedFormatException, IOException {
-        if (path == null) {
-            throw new IOException("Path cannot be null");
-        }
-        
-        byte[] header = readHeader(path);
+        Path safePath = validateInputPath(path);
+        byte[] header = readHeader(safePath);
         
         // Handle explicit extension matching for RAW formats that may share signatures or lack simple magic bytes
-        String filename = path.getFileName().toString().toLowerCase(Locale.ROOT);
+        String filename = safePath.getFileName().toString().toLowerCase(Locale.ROOT);
         
         if (isJpeg(header)) return ImageFormat.JPEG;
         if (isPng(header)) return ImageFormat.PNG;
@@ -54,16 +95,15 @@ public final class FileValidator {
         // RAW Formats checks based on extensions + signatures
         if (filename.endsWith(".cr3")) {
             return ImageFormat.RAW_CR3;
-        } else if (filename.endsWith(".cr2") || filename.endsWith(".nef") || filename.endsWith(".arw") || filename.endsWith(".dng")) {
-            if (isTiff(header)) {
-                return ImageFormat.RAW_TIFF;
-            }
+        } else if ((filename.endsWith(".cr2") || filename.endsWith(".nef") || filename.endsWith(".arw") || filename.endsWith(".dng"))
+                && isTiff(header)) {
+            return ImageFormat.RAW_TIFF;
         }
         
         if (isTiff(header)) return ImageFormat.TIFF;
 
         throw new UnsupportedFormatException(
-            "Unsupported format: " + path.getFileName()
+            "Unsupported format: " + AppLogger.sanitize(String.valueOf(safePath.getFileName()))
             + " (magic bytes do not match any supported format)"
         );
     }
@@ -72,15 +112,14 @@ public final class FileValidator {
      * Reads the first {@value #HEADER_LENGTH} bytes from the file.
      */
     private static byte[] readHeader(Path path) throws IOException {
-        if (path == null) {
-            throw new IOException("Path cannot be null");
-        }
-        try (InputStream is = Files.newInputStream(path)) {
+        Path safePath = validateInputPath(path);
+        try (InputStream is = Files.newInputStream(safePath)) {
             byte[] buf = new byte[HEADER_LENGTH];
             int read = is.read(buf);
             if (read < 4) {
                 throw new IOException(
-                    "File is too small to determine format: " + path.getFileName());
+                    "File is too small to determine format: "
+                        + AppLogger.sanitize(String.valueOf(safePath.getFileName())));
             }
             return buf;
         }
@@ -131,7 +170,7 @@ public final class FileValidator {
      */
     public static boolean isPdf(byte[] header) {
         if (header == null || header.length < 4) return false;
-        return (header[0] == 0x25) && (header[1] == 0x50) && (header[2] == 0x44) && (header[3] == 0x46);
+        return header[0] == 0x25 && header[1] == 0x50 && header[2] == 0x44 && header[3] == 0x46;
     }
 
     /**
@@ -142,8 +181,8 @@ public final class FileValidator {
      */
     public static boolean isWebp(byte[] header) {
         if (header == null || header.length < 12) return false;
-        return (header[0] == 0x52) && (header[1] == 0x49) && (header[2] == 0x46) && (header[3] == 0x46) && // RIFF
-               (header[8] == 0x57) && (header[9] == 0x45) && (header[10] == 0x42) && (header[11] == 0x50); // WEBP
+         return header[0] == 0x52 && header[1] == 0x49 && header[2] == 0x46 && header[3] == 0x46 && // RIFF
+             header[8] == 0x57 && header[9] == 0x45 && header[10] == 0x42 && header[11] == 0x50; // WEBP
     }
 
     /**
@@ -167,7 +206,7 @@ public final class FileValidator {
      */
     public static boolean isBmp(byte[] header) {
         if (header == null || header.length < 2) return false;
-        return (header[0] == 0x42) && (header[1] == 0x4D); // BM
+        return header[0] == 0x42 && header[1] == 0x4D; // BM
     }
 
     /**
@@ -178,6 +217,6 @@ public final class FileValidator {
      */
     public static boolean isGif(byte[] header) {
         if (header == null || header.length < 4) return false;
-        return (header[0] == 0x47) && (header[1] == 0x49) && (header[2] == 0x46) && (header[3] == 0x38); // GIF8
+        return header[0] == 0x47 && header[1] == 0x49 && header[2] == 0x46 && header[3] == 0x38; // GIF8
     }
 }

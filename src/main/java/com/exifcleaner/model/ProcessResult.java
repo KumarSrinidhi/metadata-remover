@@ -29,6 +29,6 @@ public record ProcessResult(
      * Compact constructor that enforces an unmodifiable view on the warnings list.
      */
     public ProcessResult {
-        warnings = Collections.unmodifiableList(warnings);
+        warnings = Collections.unmodifiableList(warnings != null ? warnings : Collections.emptyList());
     }
 }

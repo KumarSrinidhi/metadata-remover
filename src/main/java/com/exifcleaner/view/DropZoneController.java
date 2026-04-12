@@ -43,6 +43,7 @@ public class DropZoneController {
 
     /** FXML initialize — wires drag and click events. */
     @FXML
+    @SuppressWarnings("PMD.UnusedPrivateMethod")
     private void initialize() {
         dropZoneRoot.setOnDragOver(this::onDragOver);
         dropZoneRoot.setOnDragDropped(this::onDragDropped);

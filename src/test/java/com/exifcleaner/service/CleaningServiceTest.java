@@ -50,7 +50,11 @@ class CleaningServiceTest {
         try {
             Platform.startup(() -> {});
         } catch (IllegalStateException e) {
-            // Already initialised — safe to ignore
+            String msg = e.getMessage();
+            if (msg == null || !msg.toLowerCase(java.util.Locale.ROOT).contains("already")) {
+                throw e;
+            }
+            System.err.println("JavaFX toolkit already initialised; reusing existing toolkit.");
         }
     }
 

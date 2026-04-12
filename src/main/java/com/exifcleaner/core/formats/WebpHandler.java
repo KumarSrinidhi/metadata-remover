@@ -53,8 +53,8 @@ public class WebpHandler implements FormatHandler {
             throw new IOException("Not a valid WebP: file too small");
         }
 
-        String riff = new String(input, 0, 4);
-        String webp = new String(input, 8, 4);
+        String riff = new String(input, 0, 4, java.nio.charset.StandardCharsets.US_ASCII);
+        String webp = new String(input, 8, 4, java.nio.charset.StandardCharsets.US_ASCII);
         if (!riff.equals("RIFF") || !webp.equals("WEBP")) {
             throw new IOException("Not a valid WebP: missing RIFF/WEBP signature");
         }
@@ -68,7 +68,6 @@ public class WebpHandler implements FormatHandler {
         while (pos < input.length) {
             if (pos + 8 > input.length) break;
 
-            String chunkID = new String(input, pos, 4);
             int chunkSize = (input[pos + 4] & 0xFF) |
                             ((input[pos + 5] & 0xFF) << 8) |
                             ((input[pos + 6] & 0xFF) << 16) |
@@ -79,8 +78,11 @@ public class WebpHandler implements FormatHandler {
                 break;
             }
 
+            String chunkID = new String(input, pos, 4, java.nio.charset.StandardCharsets.US_ASCII);
             if (chunkID.equals("VP8X")) {
                 vp8xPayload = Arrays.copyOfRange(input, pos + 8, pos + 8 + paddedSize);
+                pos += 8 + paddedSize;
+                continue; // VP8X will be re-written with updated flags at the front
             } else if (chunkID.equals("EXIF")) {
                 if (options.removeExif() || options.removeThumbnail()) {
                     hasExifRemoved = true;
@@ -90,12 +92,10 @@ public class WebpHandler implements FormatHandler {
                     pos += 8 + paddedSize;
                     continue;
                 }
-            } else if (chunkID.equals("XMP ")) {
-                if (options.removeXmp()) {
-                    hasXmpRemoved = true;
-                    pos += 8 + paddedSize;
-                    continue;
-                }
+            } else if (chunkID.equals("XMP ") && options.removeXmp()) {
+                hasXmpRemoved = true;
+                pos += 8 + paddedSize;
+                continue;
             }
 
             outChunks.write(input, pos, 8 + paddedSize);
@@ -103,11 +103,12 @@ public class WebpHandler implements FormatHandler {
         }
 
         ByteArrayOutputStream finalOut = new ByteArrayOutputStream();
-        finalOut.write(input, 0, 4);
+        finalOut.write(input, 0, 4);  // "RIFF"
+        // RIFF size placeholder (4 bytes) — filled in at the end
+        finalOut.write(0); finalOut.write(0); finalOut.write(0); finalOut.write(0);
+        finalOut.write(input, 8, 4);  // "WEBP"
 
         byte[] chunkBytes = outChunks.toByteArray();
-        int vp8xSize = vp8xPayload != null ? 8 + vp8xPayload.length : 0;
-        int finalRiffPayloadSize = 4 + vp8xSize + chunkBytes.length;
 
         if (vp8xPayload != null) {
             byte[] modifiedVp8x = vp8xPayload.clone();
@@ -119,7 +120,7 @@ public class WebpHandler implements FormatHandler {
             }
 
             byte[] vp8xChunk = new byte[4 + 4 + modifiedVp8x.length];
-            System.arraycopy("VP8X".getBytes(), 0, vp8xChunk, 0, 4);
+            System.arraycopy("VP8X".getBytes(java.nio.charset.StandardCharsets.US_ASCII), 0, vp8xChunk, 0, 4);
             vp8xChunk[4] = (byte) (modifiedVp8x.length & 0xFF);
             vp8xChunk[5] = (byte) ((modifiedVp8x.length >> 8) & 0xFF);
             vp8xChunk[6] = (byte) ((modifiedVp8x.length >> 16) & 0xFF);
@@ -131,7 +132,7 @@ public class WebpHandler implements FormatHandler {
 
         finalOut.write(chunkBytes);
 
-        int finalSize = finalOut.size() - 8;
+        int finalSize = finalOut.size() - 8;  // RIFF payload = total - 8 (RIFF tag + size field)
         byte[] riffHeader = new byte[4];
         riffHeader[0] = (byte) (finalSize & 0xFF);
         riffHeader[1] = (byte) ((finalSize >> 8) & 0xFF);
@@ -157,12 +158,16 @@ public class WebpHandler implements FormatHandler {
         List<String> warnings = new ArrayList<>();
 
         try {
-            byte[] cleaned = stripMetadataChunks(inputPath, options, warnings);
-            Files.write(outputPath, cleaned);
-            long inputSize = Files.size(inputPath);
+            Path safeInput = inputPath.toAbsolutePath().normalize();
+            Path safeOutput = outputPath.toAbsolutePath().normalize();
+            long inputSize = Files.size(safeInput);
+            byte[] cleaned = stripMetadataChunks(safeInput, options, warnings);
+            FileValidator.validateOutputPath(safeOutput);
+            Files.write(safeOutput, cleaned);
             long bytesSaved = inputSize - cleaned.length;
+            String safeName = AppLogger.sanitize(String.valueOf(safeInput.getFileName()));
 
-            AppLogger.info("Cleaned WebP: " + inputPath.getFileName()
+            AppLogger.info("Cleaned WebP: " + safeName
                 + " (" + bytesSaved + " bytes saved)");
 
             return new ProcessResult(
@@ -170,9 +175,10 @@ public class WebpHandler implements FormatHandler {
                 bytesSaved, System.currentTimeMillis() - startMs, warnings, null);
 
         } catch (IOException e) {
-            AppLogger.error("Failed to clean WebP: " + inputPath.getFileName(), e);
+            String safeName = AppLogger.sanitize(String.valueOf(inputPath.getFileName()));
+            AppLogger.error("Failed to clean WebP: " + safeName, e);
             throw new MetadataRemovalException(
-                "Failed to clean WebP: " + inputPath.getFileName() + ": " + e.getMessage(), e);
+                "Failed to clean WebP: " + safeName + ": " + e.getMessage(), e);
         }
     }
 
@@ -184,7 +190,8 @@ public class WebpHandler implements FormatHandler {
     public Map<String, String> getMetadataSummary(Path path) {
         Map<String, String> summary = new LinkedHashMap<>();
         try {
-            Metadata metadata = ImageMetadataReader.readMetadata(path.toFile());
+            Metadata metadata = ImageMetadataReader.readMetadata(
+                path.toAbsolutePath().normalize().toFile());
             for (Directory directory : metadata.getDirectories()) {
                 for (Tag tag : directory.getTags()) {
                     String key = directory.getName() + " / " + tag.getTagName();
@@ -192,7 +199,8 @@ public class WebpHandler implements FormatHandler {
                 }
             }
         } catch (ImageProcessingException | IOException e) {
-            AppLogger.warn("Could not read metadata summary for: " + path.getFileName());
+            AppLogger.warn("Could not read metadata summary for: "
+                + AppLogger.sanitize(String.valueOf(path.getFileName())));
         }
         return summary;
     }

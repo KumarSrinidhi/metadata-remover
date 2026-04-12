@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 /**
  * ViewModel for the main application window.
@@ -76,9 +75,7 @@ public class MainViewModel {
     public void handleDrop(List<File> files) {
         if (files == null || files.isEmpty()) return;
 
-        List<Path> paths = files.stream()
-            .map(File::toPath)
-            .collect(Collectors.toList());
+        List<Path> paths = files.stream().map(File::toPath).toList();
 
         List<FileEntry> entries = scannerService.scan(paths, state);
         state.setLoadedFiles(entries);
@@ -94,9 +91,7 @@ public class MainViewModel {
     public void addFiles(List<File> files) {
         if (files == null || files.isEmpty()) return;
 
-        List<Path> paths = files.stream()
-            .map(File::toPath)
-            .collect(Collectors.toList());
+        List<Path> paths = files.stream().map(File::toPath).toList();
 
         List<FileEntry> newEntries = scannerService.scan(paths, state);
 
@@ -273,8 +268,9 @@ public class MainViewModel {
     }
 
     private void logResultWarnings(ProcessResult result) {
+        String safeName = AppLogger.sanitize(result.inputPath().getFileName().toString());
         for (String warning : result.warnings()) {
-            AppLogger.warn("[" + result.inputPath().getFileName() + "] " + warning);
+            AppLogger.warn("[" + safeName + "] " + AppLogger.sanitize(String.valueOf(warning)));
         }
     }
 

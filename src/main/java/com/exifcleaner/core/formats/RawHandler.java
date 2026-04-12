@@ -17,7 +17,6 @@ import com.exifcleaner.utilities.errors.UnsupportedFormatException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,36 +51,38 @@ public class RawHandler implements FormatHandler {
             throws MetadataRemovalException {
 
         try {
-            FileValidator.ImageFormat format = FileValidator.detect(inputPath);
+            Path safeInput = inputPath.toAbsolutePath().normalize();
+            Path safeOutput = outputPath.toAbsolutePath().normalize();
+            String safeName = AppLogger.sanitize(String.valueOf(safeInput.getFileName()));
+            FileValidator.ImageFormat format = FileValidator.detect(safeInput);
 
-            AppLogger.warn("RAW files are complex. Best-effort modification applied for: " + inputPath.getFileName());
+            AppLogger.warn("RAW files are complex. Best-effort modification applied for: " + safeName);
 
             if (format == FileValidator.ImageFormat.RAW_CR3) {
-                // CR3 is based on ISOBMFF. Simply fallback to copy with warning.
-                long inputSize = Files.size(inputPath);
+                long inputSize = Files.size(safeInput);
                 if (inputSize > MAX_FILE_SIZE) {
                     throw new IOException("File too large: " + inputSize + " bytes (max: " + MAX_FILE_SIZE + ")");
                 }
+                FileValidator.validateOutputPath(safeOutput);
                 long startMs = System.currentTimeMillis();
-                Files.copy(inputPath, outputPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                Files.copy(safeInput, safeOutput, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
                 List<String> warnings = new java.util.ArrayList<>();
                 warnings.add("RAW files are complex. CR3 format metadata stripping skipped. File copied exactly.");
 
-                AppLogger.info("Skipped CR3: " + inputPath.getFileName() + " (0 bytes saved)");
+                AppLogger.info("Skipped CR3: " + safeName + " (0 bytes saved)");
 
                 return new ProcessResult(
                     inputPath, outputPath, FileStatus.DONE,
                     0, System.currentTimeMillis() - startMs, warnings, null);
             } else {
-                // Delegate to TiffHandler
-                long inputSize = Files.size(inputPath);
+                long inputSize = Files.size(safeInput);
                 if (inputSize > MAX_FILE_SIZE) {
                     throw new IOException("File too large: " + inputSize + " bytes (max: " + MAX_FILE_SIZE + ")");
                 }
-                ProcessResult tiffResult = tiffHandler.clean(inputPath, outputPath, options);
+                FileValidator.validateOutputPath(safeOutput);
+                ProcessResult tiffResult = tiffHandler.clean(safeInput, safeOutput, options);
 
-                // Build a new result with the RAW warning appended — warnings list is unmodifiable
                 List<String> warnings = new java.util.ArrayList<>(tiffResult.warnings());
                 warnings.add("RAW files are complex. Re-encoding may drop RAW-specific image data or alter format.");
                 return new ProcessResult(
@@ -90,9 +91,10 @@ public class RawHandler implements FormatHandler {
             }
 
         } catch (UnsupportedFormatException | IOException e) {
-            AppLogger.error("Failed to process RAW: " + inputPath.getFileName(), e);
+            String safeName = AppLogger.sanitize(String.valueOf(inputPath.getFileName()));
+            AppLogger.error("Failed to process RAW: " + safeName, e);
             throw new MetadataRemovalException(
-                "Failed to process RAW: " + inputPath.getFileName() + ": " + e.getMessage(), e);
+                "Failed to process RAW: " + safeName + ": " + e.getMessage(), e);
         }
     }
 
@@ -104,7 +106,8 @@ public class RawHandler implements FormatHandler {
     public Map<String, String> getMetadataSummary(Path path) {
         Map<String, String> summary = new LinkedHashMap<>();
         try {
-            Metadata metadata = ImageMetadataReader.readMetadata(path.toFile());
+            Metadata metadata = ImageMetadataReader.readMetadata(
+                path.toAbsolutePath().normalize().toFile());
             for (Directory directory : metadata.getDirectories()) {
                 for (Tag tag : directory.getTags()) {
                     String key = directory.getName() + " / " + tag.getTagName();
@@ -112,7 +115,8 @@ public class RawHandler implements FormatHandler {
                 }
             }
         } catch (ImageProcessingException | IOException e) {
-            AppLogger.warn("Could not read metadata summary for: " + path.getFileName());
+            AppLogger.warn("Could not read metadata summary for: "
+                + AppLogger.sanitize(String.valueOf(path.getFileName())));
         }
         return summary;
     }

@@ -50,3 +50,4 @@ spotbugsXml.xml
 
 # PMD reports
 pmd.xml
+Testing_Data/

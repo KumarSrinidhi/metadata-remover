@@ -56,12 +56,16 @@ public class PdfHandler implements FormatHandler {
         List<String> warnings = new ArrayList<>();
 
         try {
-            long inputSize = Files.size(inputPath);
+            Path safeInput = FileValidator.validateInputPath(inputPath);
+            Path safeOutput = outputPath.toAbsolutePath().normalize();
+            FileValidator.validateOutputPath(safeOutput);
+            long inputSize = Files.size(safeInput);
+            String safeName = AppLogger.sanitize(String.valueOf(safeInput.getFileName()));
             if (inputSize > MAX_FILE_SIZE) {
                 throw new IOException("File too large: " + inputSize + " bytes (max: " + MAX_FILE_SIZE + ")");
             }
             
-            try (PDDocument document = Loader.loadPDF(inputPath.toFile())) {
+            try (PDDocument document = Loader.loadPDF(safeInput.toFile())) {
                 boolean modified = false;
 
                 if (options.removeExif() || options.removeIptc() || options.removeXmp()) {
@@ -89,26 +93,27 @@ public class PdfHandler implements FormatHandler {
                 }
 
                 if (modified) {
-                    document.save(outputPath.toFile());
+                    document.save(safeOutput.toFile());
                 } else {
-                    Files.copy(inputPath, outputPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    Files.copy(safeInput, safeOutput, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 }
             }
 
-            long outputSize = Files.size(outputPath);
+            long outputSize = Files.size(safeOutput);
             long bytesSaved = inputSize - outputSize;
             if (bytesSaved < 0) bytesSaved = 0; // PDFBox might repackage larger
 
-            AppLogger.info("Cleaned PDF: " + inputPath.getFileName() + " (" + bytesSaved + " bytes saved)");
+            AppLogger.info("Cleaned PDF: " + safeName + " (" + bytesSaved + " bytes saved)");
 
             return new ProcessResult(
                 inputPath, outputPath, FileStatus.DONE,
                 bytesSaved, System.currentTimeMillis() - startMs, warnings, null);
 
         } catch (IOException e) {
-            AppLogger.error("Failed to clean PDF: " + inputPath.getFileName(), e);
+            String safeName = AppLogger.sanitize(String.valueOf(inputPath.getFileName()));
+            AppLogger.error("Failed to clean PDF: " + safeName, e);
             throw new MetadataRemovalException(
-                "Failed to clean PDF: " + inputPath.getFileName() + ": " + e.getMessage(), e);
+                "Failed to clean PDF: " + safeName + ": " + e.getMessage(), e);
         }
     }
 
@@ -120,7 +125,9 @@ public class PdfHandler implements FormatHandler {
     public Map<String, String> getMetadataSummary(Path path) {
         Map<String, String> summary = new LinkedHashMap<>();
         try {
-            Metadata metadata = ImageMetadataReader.readMetadata(path.toFile());
+            Path safePath = FileValidator.validateInputPath(path);
+            Metadata metadata = ImageMetadataReader.readMetadata(
+                safePath.toFile());
             for (Directory directory : metadata.getDirectories()) {
                 for (Tag tag : directory.getTags()) {
                     String key = directory.getName() + " / " + tag.getTagName();
@@ -128,7 +135,8 @@ public class PdfHandler implements FormatHandler {
                 }
             }
         } catch (ImageProcessingException | IOException e) {
-            AppLogger.warn("Could not read metadata summary for: " + path.getFileName());
+            AppLogger.warn("Could not read metadata summary for: "
+                + AppLogger.sanitize(String.valueOf(path.getFileName())));
         }
         return summary;
     }

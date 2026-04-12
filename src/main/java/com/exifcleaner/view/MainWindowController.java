@@ -8,7 +8,6 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
 
 /**
  * Controller for MainWindow.fxml.
@@ -132,6 +131,7 @@ public class MainWindowController {
 
     /** FXML initialize — called by FXMLLoader before setViewModel. */
     @FXML
+    @SuppressWarnings("PMD.UnusedPrivateMethod")
     private void initialize() {
         // Initial state: show drop zone, hide file list
         // (bindCenterSwitch wires the reactive switch on setViewModel)

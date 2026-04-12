@@ -13,6 +13,7 @@ import javax.imageio.ImageIO;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
+import java.nio.ByteBuffer;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.nio.file.Files;
@@ -130,6 +131,17 @@ class JpegHandlerTest {
             () -> handler.clean(corrupt, tempDir.resolve("out.jpg"), allOn()));
     }
 
+    @Test
+    void getMetadataSummary_invalidFile_returnsEmptyMap() throws Exception {
+        Path invalid = tempDir.resolve("not-a-jpeg.jpg");
+        Files.write(invalid, "invalid-jpeg-content".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+        var summary = handler.getMetadataSummary(invalid);
+
+        assertNotNull(summary);
+        assertTrue(summary.isEmpty(), "Invalid file should yield an empty metadata summary");
+    }
+
     // ── Helper methods ─────────────────────────────────────────────────
 
     private CleanOptions allOn() {
@@ -154,12 +166,11 @@ class JpegHandlerTest {
             // SOI
             fos.write(new byte[]{ (byte)0xFF, (byte)0xD8 });
             // APP1 EXIF (FF E1 + length + "Exif\0\0" + some bytes)
-            byte[] exifId = "Exif\0\0".getBytes();
+            byte[] exifId = "Exif\0\0".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
             byte[] payload = Arrays.copyOf(exifId, exifId.length + 10);
             int segLen = payload.length + 2;
             fos.write(new byte[]{ (byte)0xFF, (byte)0xE1 });
-            fos.write((segLen >> 8) & 0xFF);
-            fos.write(segLen & 0xFF);
+            fos.write(ByteBuffer.allocate(2).putShort((short) segLen).array());
             fos.write(payload);
             // EOI
             fos.write(new byte[]{ (byte)0xFF, (byte)0xD9 });

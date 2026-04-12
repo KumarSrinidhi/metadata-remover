@@ -47,7 +47,10 @@ public class BmpHandler implements FormatHandler {
         List<String> warnings = new ArrayList<>();
 
         try {
-            long inputSize = Files.size(inputPath);
+            Path safeInput = FileValidator.validateInputPath(inputPath);
+            Path safeOutput = outputPath.toAbsolutePath().normalize();
+            FileValidator.validateOutputPath(safeOutput);
+            long inputSize = Files.size(safeInput);
             if (inputSize > MAX_FILE_SIZE) {
                 throw new IOException("File too large: " + inputSize + " bytes (max: " + MAX_FILE_SIZE + ")");
             }
@@ -55,18 +58,20 @@ public class BmpHandler implements FormatHandler {
             // BMP has no standard metadata to strip.
             // Simply copy the file and log a warning.
             warnings.add("BMP files do not contain standard metadata. File copied without changes.");
-            Files.copy(inputPath, outputPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(safeInput, safeOutput, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
-            AppLogger.info("Cleaned BMP: " + inputPath.getFileName() + " (0 bytes saved)");
+            String safeName = AppLogger.sanitize(String.valueOf(safeInput.getFileName()));
+            AppLogger.info("Cleaned BMP: " + safeName + " (0 bytes saved)");
 
             return new ProcessResult(
                 inputPath, outputPath, FileStatus.DONE,
                 0, System.currentTimeMillis() - startMs, warnings, null);
 
         } catch (IOException e) {
-            AppLogger.error("Failed to process BMP: " + inputPath.getFileName(), e);
+            String safeName = AppLogger.sanitize(String.valueOf(inputPath.getFileName()));
+            AppLogger.error("Failed to process BMP: " + safeName, e);
             throw new MetadataRemovalException(
-                "Failed to process BMP: " + inputPath.getFileName() + ": " + e.getMessage(), e);
+                "Failed to process BMP: " + safeName + ": " + e.getMessage(), e);
         }
     }
 

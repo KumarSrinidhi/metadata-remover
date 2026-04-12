@@ -5,11 +5,9 @@ import com.exifcleaner.core.formats.FormatHandler;
 import com.exifcleaner.model.CleanOptions;
 import com.exifcleaner.model.ProcessResult;
 import com.exifcleaner.utilities.AppLogger;
-import com.exifcleaner.utilities.FileValidator;
 import com.exifcleaner.utilities.errors.MetadataRemovalException;
 import com.exifcleaner.utilities.errors.UnsupportedFormatException;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
@@ -51,8 +49,9 @@ public class CleaningEngine {
             throws UnsupportedFormatException, MetadataRemovalException {
 
         FormatHandler handler = resolveHandler(inputPath);
-        AppLogger.info("Processing: " + inputPath.getFileName()
-            + " [" + handler.getClass().getSimpleName() + "]");
+        String safeName = AppLogger.sanitize(String.valueOf(inputPath.getFileName()));
+        String safeHandler = AppLogger.sanitize(handler.getClass().getSimpleName());
+        AppLogger.info("Processing: " + safeName + " [" + safeHandler + "]");
         return handler.clean(inputPath, outputPath, options);
     }
 
@@ -83,7 +82,7 @@ public class CleaningEngine {
             }
         }
         throw new UnsupportedFormatException(
-            "No handler for file: " + path.getFileName()
+            "No handler for file: " + AppLogger.sanitize(String.valueOf(path.getFileName()))
             + " (supported: " + AppConfig.SUPPORTED_EXTENSIONS + ")");
     }
 
@@ -97,10 +96,13 @@ public class CleaningEngine {
      * @return the resolved, collision-free output path
      */
     public static Path resolveOutputPath(Path inputPath, CleanOptions options) {
-        String filename = inputPath.getFileName().toString();
+        // Strip any path separators or traversal sequences from the raw filename
+        String rawFilename = inputPath.getFileName().toString();
+        // Use only the last component after any embedded separators to prevent traversal
+        String filename = java.nio.file.Paths.get(rawFilename).getFileName().toString();
         int dotIndex = filename.lastIndexOf('.');
-        String base = (dotIndex >= 0) ? filename.substring(0, dotIndex) : filename;
-        String ext  = (dotIndex >= 0) ? filename.substring(dotIndex) : "";
+        String base = dotIndex >= 0 ? filename.substring(0, dotIndex) : filename;
+        String ext  = dotIndex >= 0 ? filename.substring(dotIndex) : "";
 
         Path candidate;
         if (options.outputMode() == OutputMode.CUSTOM_FOLDER) {
@@ -108,10 +110,21 @@ public class CleaningEngine {
                 throw new IllegalArgumentException(
                     "CUSTOM_FOLDER output mode requires customOutputFolder to be set");
             }
-            candidate = options.customOutputFolder().resolve(filename);
+            Path customRoot = options.customOutputFolder().toAbsolutePath().normalize();
+            // Resolve then normalize to collapse any traversal in the filename
+            candidate = customRoot.resolve(filename).normalize();
+            // Ensure the resolved path is still inside the custom folder
+            if (!candidate.startsWith(customRoot)) {
+                throw new IllegalArgumentException(
+                    "Path traversal detected in output filename: " + rawFilename);
+            }
         } else {
             // SAME_FOLDER: insert _cleaned before the extension
-            candidate = inputPath.getParent().resolve(base + AppConfig.CLEANED_SUFFIX + ext);
+            Path parent = inputPath.toAbsolutePath().normalize().getParent();
+            if (parent == null) {
+                throw new IllegalArgumentException("Input path must include a parent directory");
+            }
+            candidate = parent.resolve(base + AppConfig.CLEANED_SUFFIX + ext).normalize();
         }
 
         // Collision avoidance: append _2, _3, ... until the path is free

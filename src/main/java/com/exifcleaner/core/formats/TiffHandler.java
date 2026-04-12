@@ -30,7 +30,6 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Format handler for TIFF images (including multi-page).
@@ -40,11 +39,6 @@ import java.util.Set;
 public class TiffHandler implements FormatHandler {
 
     private static final long MAX_FILE_SIZE = AppConfig.MAX_FILE_SIZE;
-
-    /** TIFF metadata tag IDs that represent metadata sub-IFDs (EXIF, IPTC, XMP). */
-    private static final Set<String> EXIF_XMP_IPTC_NODE_NAMES =
-        Set.of("TIFFTAG_EXIFIFD", "TIFFTAG_IPTC", "TIFFTAG_XMP",
-               "ExifIFD", "IPTC", "XMP Data", "GPS");
 
     /** {@inheritDoc} */
     @Override
@@ -69,15 +63,19 @@ public class TiffHandler implements FormatHandler {
         List<String> warnings = new ArrayList<>();
 
         try {
-            long inputSize = Files.size(inputPath);
+            Path safeInput = inputPath.toAbsolutePath().normalize();
+            Path safeOutput = outputPath.toAbsolutePath().normalize();
+            long inputSize = Files.size(safeInput);
+            String safeName = AppLogger.sanitize(String.valueOf(safeInput.getFileName()));
             if (inputSize > MAX_FILE_SIZE) {
                 throw new IOException("File too large: " + inputSize + " bytes (max: " + MAX_FILE_SIZE + ")");
             }
-            reencodeWithFilteredMetadata(inputPath, outputPath, options, warnings);
-            long outputSize = Files.size(outputPath);
+            FileValidator.validateOutputPath(safeOutput);
+            reencodeWithFilteredMetadata(safeInput, safeOutput, options, warnings);
+            long outputSize = Files.size(safeOutput);
             long bytesSaved = inputSize - outputSize;
 
-            AppLogger.info("Cleaned TIFF: " + inputPath.getFileName()
+            AppLogger.info("Cleaned TIFF: " + safeName
                 + " (" + bytesSaved + " bytes saved)");
 
             return new ProcessResult(
@@ -85,9 +83,10 @@ public class TiffHandler implements FormatHandler {
                 bytesSaved, System.currentTimeMillis() - startMs, warnings, null);
 
         } catch (IOException e) {
-            AppLogger.error("Failed to clean TIFF: " + inputPath.getFileName(), e);
+            String safeName = AppLogger.sanitize(String.valueOf(inputPath.getFileName()));
+            AppLogger.error("Failed to clean TIFF: " + safeName, e);
             throw new MetadataRemovalException(
-                "Failed to clean TIFF: " + inputPath.getFileName() + ": " + e.getMessage(), e);
+                "Failed to clean TIFF: " + safeName + ": " + e.getMessage(), e);
         }
     }
 
@@ -118,8 +117,8 @@ public class TiffHandler implements FormatHandler {
         ImageWriter writer = writers.next();
 
         try {
-            try (ImageInputStream iis = ImageIO.createImageInputStream(inputPath.toFile());
-                 ImageOutputStream ios = ImageIO.createImageOutputStream(outputPath.toFile())) {
+            try (ImageInputStream iis = ImageIO.createImageInputStream(inputPath.toAbsolutePath().normalize().toFile());
+                 ImageOutputStream ios = ImageIO.createImageOutputStream(outputPath.toAbsolutePath().normalize().toFile())) {
 
                 reader.setInput(iis);
                 writer.setOutput(ios);
@@ -165,8 +164,9 @@ public class TiffHandler implements FormatHandler {
                 metadata.setFromTree(format, root);
             }
         } catch (Exception e) {
-            AppLogger.warn("Could not filter TIFF metadata tree: " + e.getMessage());
-            warnings.add("Metadata filtering partially failed: " + e.getMessage());
+            String safeMessage = AppLogger.sanitize(e.getMessage());
+            AppLogger.warn("Could not filter TIFF metadata tree: " + safeMessage);
+            warnings.add("Metadata filtering partially failed: " + safeMessage);
         }
 
         return metadata;
@@ -219,7 +219,8 @@ public class TiffHandler implements FormatHandler {
     public Map<String, String> getMetadataSummary(Path path) {
         Map<String, String> summary = new LinkedHashMap<>();
         try {
-            Metadata metadata = ImageMetadataReader.readMetadata(path.toFile());
+            Metadata metadata = ImageMetadataReader.readMetadata(
+                path.toAbsolutePath().normalize().toFile());
             for (Directory directory : metadata.getDirectories()) {
                 for (Tag tag : directory.getTags()) {
                     String key = directory.getName() + " / " + tag.getTagName();
@@ -227,7 +228,8 @@ public class TiffHandler implements FormatHandler {
                 }
             }
         } catch (ImageProcessingException | IOException e) {
-            AppLogger.warn("Could not read metadata summary for: " + path.getFileName());
+            AppLogger.warn("Could not read metadata summary for: "
+                + AppLogger.sanitize(String.valueOf(path.getFileName())));
         }
         return summary;
     }

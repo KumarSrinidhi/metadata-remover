@@ -71,8 +71,10 @@ public class OptionsPanelController {
      * Binds radio buttons to the output mode property and wires the folder picker.
      */
     private void bindOutputMode() {
-        // Set initial toggle state
-        radioSameFolder.setSelected(true);
+        // Restore initial toggle state from persisted preference
+        boolean isCustom = viewModel.outputModeProperty().get() == com.exifcleaner.core.OutputMode.CUSTOM_FOLDER;
+        radioCustomFolder.setSelected(isCustom);
+        radioSameFolder.setSelected(!isCustom);
 
         // Show/hide custom folder box based on radio selection
         radioCustomFolder.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
@@ -126,6 +128,7 @@ public class OptionsPanelController {
 
     /** FXML initialize — called by FXMLLoader. */
     @FXML
+    @SuppressWarnings("PMD.UnusedPrivateMethod")
     private void initialize() {
         customFolderBox.setVisible(false);
         customFolderBox.setManaged(false);

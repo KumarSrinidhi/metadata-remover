@@ -11,6 +11,7 @@ import javax.imageio.ImageIO;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -46,7 +47,7 @@ class BatchScannerServiceTest {
         createJpeg(tempDir, "a.jpg");
         createPng(tempDir, "b.png");
         // A .txt file should be ignored
-        Files.write(tempDir.resolve("note.txt"), "hello".getBytes());
+        Files.write(tempDir.resolve("note.txt"), "hello".getBytes(StandardCharsets.UTF_8));
 
         List<FileEntry> result = service.scan(List.of(tempDir), state);
         assertEquals(2, result.size());
@@ -117,20 +118,21 @@ class BatchScannerServiceTest {
     // ── Helpers ────────────────────────────────────────────────────────
 
     private Path createJpeg(Path dir, String name) throws Exception {
-        Path path = dir.resolve(name);
-        BufferedImage img = new BufferedImage(4, 4, BufferedImage.TYPE_INT_RGB);
-        Graphics2D g = img.createGraphics();
-        g.setColor(Color.RED); g.fillRect(0, 0, 4, 4); g.dispose();
-        ImageIO.write(img, "jpg", path.toFile());
-        return path;
+        return createSolidImage(dir, name, "jpg", Color.RED);
     }
 
     private Path createPng(Path dir, String name) throws Exception {
+        return createSolidImage(dir, name, "png", Color.BLUE);
+    }
+
+    private Path createSolidImage(Path dir, String name, String format, Color color) throws Exception {
         Path path = dir.resolve(name);
         BufferedImage img = new BufferedImage(4, 4, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = img.createGraphics();
-        g.setColor(Color.BLUE); g.fillRect(0, 0, 4, 4); g.dispose();
-        ImageIO.write(img, "png", path.toFile());
+        g.setColor(color);
+        g.fillRect(0, 0, 4, 4);
+        g.dispose();
+        ImageIO.write(img, format, path.toFile());
         return path;
     }
 }

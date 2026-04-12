@@ -52,17 +52,20 @@ public class GifHandler implements FormatHandler {
         List<String> warnings = new ArrayList<>();
 
         try {
-            long inputSize = Files.size(inputPath);
+            Path safeInput = FileValidator.validateInputPath(inputPath);
+            long inputSize = Files.size(safeInput);
             if (inputSize > MAX_FILE_SIZE) {
                 throw new IOException("File too large: " + inputSize + " bytes (max: " + MAX_FILE_SIZE + ")");
             }
-            byte[] input = Files.readAllBytes(inputPath);
+            byte[] input = Files.readAllBytes(safeInput);
             byte[] cleaned = stripGifMetadata(input, options);
-            
-            Files.write(outputPath, cleaned);
+            Path safeOutput = outputPath.toAbsolutePath().normalize();
+            FileValidator.validateOutputPath(safeOutput);
+            Files.write(safeOutput, cleaned);
             long bytesSaved = inputSize - cleaned.length;
+            String safeName = AppLogger.sanitize(String.valueOf(safeInput.getFileName()));
 
-            AppLogger.info("Cleaned GIF: " + inputPath.getFileName()
+            AppLogger.info("Cleaned GIF: " + safeName
                 + " (" + bytesSaved + " bytes saved)");
 
             return new ProcessResult(
@@ -70,9 +73,10 @@ public class GifHandler implements FormatHandler {
                 bytesSaved, System.currentTimeMillis() - startMs, warnings, null);
 
         } catch (IOException | RuntimeException e) {
-            AppLogger.error("Failed to clean GIF: " + inputPath.getFileName(), e);
+            String safeName = AppLogger.sanitize(inputPath.getFileName().toString());
+            AppLogger.error("Failed to clean GIF: " + safeName, e);
             throw new MetadataRemovalException(
-                "Failed to clean GIF: " + inputPath.getFileName() + ": " + e.getMessage(), e);
+                "Failed to clean GIF: " + safeName + ": " + e.getMessage(), e);
         }
     }
 
@@ -110,7 +114,7 @@ public class GifHandler implements FormatHandler {
                 // Extension block
                 int label = input[pos + 1] & 0xFF;
                 
-                if (label == 0xFE && options.removeExif()) {
+                if (label == 0xFE && (options.removeExif() || options.removeIptc())) {
                     // Comment Extension
                     pos += 2;
                     pos = skipSubBlocks(input, pos);
@@ -119,7 +123,7 @@ public class GifHandler implements FormatHandler {
                     // Might be XMP. Let's read the application identifier.
                     int subBlockLen = input[pos + 2] & 0xFF;
                     if (subBlockLen == 11) {
-                        String appId = new String(input, pos + 3, 11);
+                        String appId = new String(input, pos + 3, 11, java.nio.charset.StandardCharsets.US_ASCII);
                         if (appId.startsWith("XMP Data")) {
                             pos += 2;
                             pos = skipSubBlocks(input, pos);
@@ -183,8 +187,9 @@ public class GifHandler implements FormatHandler {
     }
 
     private int copyExtensionBlock(byte[] input, int pos, ByteArrayOutputStream out) {
+        if (pos + 1 >= input.length) return pos;
         out.write(input[pos]); // 0x21
-        out.write(input[pos+1]); // Label
+        out.write(input[pos + 1]); // Label
         return copySubBlocks(input, pos + 2, out);
     }
 
@@ -196,7 +201,9 @@ public class GifHandler implements FormatHandler {
     public Map<String, String> getMetadataSummary(Path path) {
         Map<String, String> summary = new LinkedHashMap<>();
         try {
-            Metadata metadata = ImageMetadataReader.readMetadata(path.toFile());
+            Path safePath = FileValidator.validateInputPath(path);
+            Metadata metadata = ImageMetadataReader.readMetadata(
+                safePath.toFile());
             for (Directory directory : metadata.getDirectories()) {
                 for (Tag tag : directory.getTags()) {
                     String key = directory.getName() + " / " + tag.getTagName();
@@ -204,7 +211,8 @@ public class GifHandler implements FormatHandler {
                 }
             }
         } catch (ImageProcessingException | IOException e) {
-            AppLogger.warn("Could not read metadata summary for: " + path.getFileName());
+            AppLogger.warn("Could not read metadata summary for: "
+                + AppLogger.sanitize(String.valueOf(path.getFileName())));
         }
         return summary;
     }

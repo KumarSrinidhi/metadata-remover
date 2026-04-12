@@ -57,34 +57,57 @@ public final class AppLogger {
     }
 
     /**
+     * Strips ASCII control characters (CR, LF, tab, etc.) from a value before
+     * it is embedded in a log message, preventing CWE-117/93 log injection.
+     *
+     * @param value raw string (may be null)
+     * @return sanitized string with all control characters removed
+     */
+    public static String sanitize(String value) {
+        if (value == null) return "";
+        return value.replaceAll("[\\p{Cntrl}]", "");
+    }
+
+    /**
      * Logs an informational message to both SLF4J and the GUI sink.
+     * The message is sanitized to prevent log injection.
      *
      * @param message the log message
      */
     public static void info(String message) {
-        log.info(message);
-        sendToGui("[INFO] " + message);
+        String safe = sanitize(message);
+        log.info(safe);
+        sendToGui("[INFO] " + safe);
     }
 
     /**
      * Logs a warning message to both SLF4J and the GUI sink.
+     * The message is sanitized to prevent log injection.
      *
      * @param message the log message
      */
     public static void warn(String message) {
-        log.warn(message);
-        sendToGui("[WARN] " + message);
+        String safe = sanitize(message);
+        log.warn(safe);
+        sendToGui("[WARN] " + safe);
     }
 
     /**
      * Logs an error message with an associated throwable.
+     * The message is sanitized to prevent log injection.
      *
      * @param message the log message
      * @param t       the throwable (may be null)
      */
     public static void error(String message, Throwable t) {
-        log.error(message, t);
-        sendToGui("[ERROR] " + message + (t != null ? ": " + t.getMessage() : ""));
+        String safe = sanitize(message);
+        String safeCause = t != null ? sanitize(t.getMessage()) : "";
+        if (!safeCause.isEmpty()) {
+            log.error(safe + ": " + safeCause);
+        } else {
+            log.error(safe);
+        }
+        sendToGui("[ERROR] " + safe + (!safeCause.isEmpty() ? ": " + safeCause : ""));
     }
 
     /**
@@ -94,16 +117,17 @@ public final class AppLogger {
      * @param formatted the formatted log string (prefix already applied)
      */
     private static void sendToGui(String formatted) {
+        String safeFormatted = sanitize(formatted);
         Consumer<String> sink = guiSinkRef.get();
         if (sink != null) {
             try {
-                sink.accept(formatted);
+                sink.accept(safeFormatted);
             } catch (Exception e) {
-                log.warn("GUI sink threw exception", e);
+                log.warn("GUI sink threw exception: " + sanitize(String.valueOf(e.getMessage())));
             }
         } else {
             if (earlyBuffer.size() < 10000) {
-                earlyBuffer.add(formatted);
+                earlyBuffer.add(safeFormatted);
             }
         }
     }

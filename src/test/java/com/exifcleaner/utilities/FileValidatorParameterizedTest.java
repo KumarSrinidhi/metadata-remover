@@ -15,6 +15,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -74,6 +76,35 @@ class FileValidatorParameterizedTest {
         assertFalse(FileValidator.isHeic(header), "Unexpected brand should not be detected as HEIC");
     }
 
+    @ParameterizedTest(name = "jpeg signature variant #{index} should be accepted")
+    @MethodSource("jpegSignatureVariants")
+    void isJpeg_signatureVariants_returnsTrue(byte[] header) {
+        assertTrue(FileValidator.isJpeg(header));
+    }
+
+    @ParameterizedTest(name = "png signature variant #{index} should be accepted")
+    @MethodSource("pngSignatureVariants")
+    void isPng_signatureVariants_returnsTrue(byte[] header) {
+        assertTrue(FileValidator.isPng(header));
+    }
+
+    @ParameterizedTest(name = "webp signature variant #{index} should be accepted")
+    @MethodSource("webpSignatureVariants")
+    void isWebp_signatureVariants_returnsTrue(byte[] header) {
+        assertTrue(FileValidator.isWebp(header));
+    }
+
+    @ParameterizedTest(name = "heic rejected brand {0}")
+    @MethodSource("unsupportedHeicBrands")
+    void isHeic_manyUnsupportedBrands_returnFalse(String brand) {
+        byte[] header = new byte[] {
+            0x00, 0x00, 0x00, 0x00,
+            0x66, 0x74, 0x79, 0x70,
+            (byte) brand.charAt(0), (byte) brand.charAt(1), (byte) brand.charAt(2), (byte) brand.charAt(3)
+        };
+        assertFalse(FileValidator.isHeic(header));
+    }
+
     @ParameterizedTest(name = "tiny file size {0} should throw IOException")
     @ValueSource(ints = {0, 1, 2, 3})
     void detect_headerTooSmall_throwsIOException(int size) throws Exception {
@@ -113,6 +144,55 @@ class FileValidatorParameterizedTest {
             Arguments.of("shot.heic", new byte[]{0, 0, 0, 0, 0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63}, FileValidator.ImageFormat.HEIC),
             Arguments.of("raw.cr2", new byte[]{0x49, 0x49, 0x2A, 0x00, 0, 0, 0, 0, 0, 0, 0, 0}, FileValidator.ImageFormat.RAW_TIFF),
             Arguments.of("raw.cr3", new byte[]{0x11, 0x22, 0x33, 0x44, 0, 0, 0, 0, 0, 0, 0, 0}, FileValidator.ImageFormat.RAW_CR3)
+        );
+    }
+
+    private static Stream<byte[]> jpegSignatureVariants() {
+        List<byte[]> cases = new ArrayList<>();
+        for (int fourth = 0; fourth < 32; fourth++) {
+            byte[] h = new byte[] {
+                (byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) fourth,
+                0, 0, 0, 0, 0, 0, 0, 0
+            };
+            cases.add(h);
+        }
+        return cases.stream();
+    }
+
+    private static Stream<byte[]> pngSignatureVariants() {
+        List<byte[]> cases = new ArrayList<>();
+        for (int tail = 0; tail < 24; tail++) {
+            byte[] h = new byte[] {
+                (byte) 0x89, 0x50, 0x4E, 0x47,
+                0x0D, 0x0A, 0x1A, 0x0A,
+                (byte) tail, 0, 0, 0
+            };
+            cases.add(h);
+        }
+        return cases.stream();
+    }
+
+    private static Stream<byte[]> webpSignatureVariants() {
+        List<byte[]> cases = new ArrayList<>();
+        for (int i = 0; i < 24; i++) {
+            byte[] h = new byte[] {
+                0x52, 0x49, 0x46, 0x46,
+                (byte) i, (byte) (i + 1), (byte) (i + 2), (byte) (i + 3),
+                0x57, 0x45, 0x42, 0x50
+            };
+            cases.add(h);
+        }
+        return cases.stream();
+    }
+
+    private static Stream<String> unsupportedHeicBrands() {
+        return Stream.of(
+            "avif", "avis", "isom", "iso2", "iso3", "iso4", "iso5", "iso6",
+            "mp41", "mp42", "mmp4", "dash", "qt  ", "3gp4", "3gp5", "3g2a",
+            "m4a ", "m4v ", "M4VH", "M4VP", "MSNV", "NDAS", "NDSC", "NDSH",
+            "NDSM", "NDSP", "NDSS", "NDXC", "NDXH", "NDXM", "NDXP", "NDXS",
+            "F4V ", "F4P ", "F4A ", "F4B ", "crx ", "jp2 ", "jpx ", "jpm ",
+            "mj2s", "mif2", "heia", "heim", "heis", "hevm", "hevs", "hvc1"
         );
     }
 

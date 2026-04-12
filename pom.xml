@@ -34,6 +34,11 @@
         <spotbugs-maven-plugin.version>4.8.3.0</spotbugs-maven-plugin.version>
         <maven-pmd-plugin.version>3.21.2</maven-pmd-plugin.version>
         <dependency-check-maven.version>9.0.9</dependency-check-maven.version>
+
+        <!-- Static analysis toggles (override via -D...=false) -->
+        <spotbugs.skip>true</spotbugs.skip>
+        <pmd.skip>true</pmd.skip>
+        <dependency-check.skip>true</dependency-check.skip>
     </properties>
 
     <dependencies>
@@ -250,7 +255,7 @@
                     <threshold>Low</threshold>
                     <xmlOutput>true</xmlOutput>
                     <failOnError>false</failOnError>
-                    <skip>true</skip>
+                    <skip>${spotbugs.skip}</skip>
                 </configuration>
             </plugin>
 
@@ -264,7 +269,7 @@
                     <targetJdk>17</targetJdk>
                     <failOnViolation>false</failOnViolation>
                     <printFailingErrors>true</printFailingErrors>
-                    <skip>true</skip>
+                    <skip>${pmd.skip}</skip>
                 </configuration>
             </plugin>
 
@@ -278,7 +283,7 @@
                     <failBuildOnCVSS>7</failBuildOnCVSS>
                     <skipProvidedScope>true</skipProvidedScope>
                     <skipRuntimeScope>false</skipRuntimeScope>
-                    <skip>true</skip>
+                    <skip>${dependency-check.skip}</skip>
                     <suppressionFiles>
                         <suppressionFile>dependency-check-suppressions.xml</suppressionFile>
                     </suppressionFiles>

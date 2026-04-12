@@ -1,11 +1,15 @@
 package com.exifcleaner.tools;
 
+import com.exifcleaner.utilities.AppLogger;
+import com.exifcleaner.utilities.FileValidator;
+
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 
 /**
  * Generates the ExifCleaner application icon as a PNG file.
@@ -24,9 +28,18 @@ public class IconGenerator {
      * @throws IOException if the file cannot be written
      */
     public static void main(String[] args) throws IOException {
-        String outputPath = args.length > 0
-            ? args[0]
-            : "src/main/resources/com/exifcleaner/icons/app-icon.png";
+        Path iconRoot = Path.of("src", "main", "resources", "com", "exifcleaner", "icons")
+            .toAbsolutePath()
+            .normalize();
+        String requested = args.length > 0 ? args[0] : "";
+        Path output = args.length > 0
+            ? Path.of(requested).toAbsolutePath().normalize()
+            : iconRoot.resolve("app-icon.png").normalize();
+        if (!output.startsWith(iconRoot)) {
+            throw new IllegalArgumentException("Path traversal detected in output path: "
+                + AppLogger.sanitize(requested));
+        }
+        FileValidator.validateOutputPath(output);
 
         int size = 64;
         BufferedImage img = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
@@ -49,9 +62,10 @@ public class IconGenerator {
 
         g.dispose();
 
-        File out = new File(outputPath);
+        File out = output.toFile();
         out.getParentFile().mkdirs();
         ImageIO.write(img, "PNG", out);
-        System.out.println("[IconGenerator] Icon written to: " + out.getAbsolutePath());
+        System.out.println("[IconGenerator] Icon written to: "
+            + AppLogger.sanitize(out.getAbsolutePath()));
     }
 }

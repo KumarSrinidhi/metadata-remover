@@ -33,7 +33,6 @@ public class JpegHandler implements FormatHandler {
 
     private static final int MARKER_PREFIX = 0xFF;
     private static final int SOI_MARKER    = 0xD8;
-    private static final long MAX_FILE_SIZE = AppConfig.MAX_FILE_SIZE;
 
     /** {@inheritDoc} */
     @Override
@@ -58,15 +57,18 @@ public class JpegHandler implements FormatHandler {
         List<String> warnings = new ArrayList<>();
 
         try {
-            long inputSize = Files.size(inputPath);
+            Path safeInput = inputPath.toAbsolutePath().normalize();
+            long inputSize = Files.size(safeInput);
             if (inputSize > AppConfig.MAX_FILE_SIZE) {
                 throw new IOException("File too large: " + inputSize + " bytes (max: " + AppConfig.MAX_FILE_SIZE + ")");
             }
-            byte[] cleaned = stripMetadataSegments(inputPath, options, warnings);
-            Files.write(outputPath, cleaned);
+            byte[] cleaned = stripMetadataSegments(safeInput, options, warnings);
+            Path safeOutput = outputPath.toAbsolutePath().normalize();
+            FileValidator.validateOutputPath(safeOutput);
+            Files.write(safeOutput, cleaned);
             long bytesSaved = inputSize - cleaned.length;
-
-            AppLogger.info("Cleaned JPEG: " + inputPath.getFileName()
+            String safeName = AppLogger.sanitize(String.valueOf(safeInput.getFileName()));
+            AppLogger.info("Cleaned JPEG: " + safeName
                 + " (" + bytesSaved + " bytes saved)");
 
             return new ProcessResult(
@@ -74,9 +76,10 @@ public class JpegHandler implements FormatHandler {
                 bytesSaved, System.currentTimeMillis() - startMs, warnings, null);
 
         } catch (IOException e) {
-            AppLogger.error("Failed to clean JPEG: " + inputPath.getFileName(), e);
+            String safeName = AppLogger.sanitize(String.valueOf(inputPath.getFileName()));
+            AppLogger.error("Failed to clean JPEG: " + safeName, e);
             throw new MetadataRemovalException(
-                "Failed to clean JPEG: " + inputPath.getFileName() + ": " + e.getMessage(), e);
+                "Failed to clean JPEG: " + safeName + ": " + e.getMessage(), e);
         }
     }
 
@@ -182,18 +185,14 @@ public class JpegHandler implements FormatHandler {
 
         String id = readNullTerminatedIdentifier(segData);
 
-        if (id.startsWith(AppConfig.JPEG_EXIF_IDENTIFIER)) {
-            if (shouldStripApp1Exif(options)) {
-                if (options.removeThumbnail() && !options.removeExif()) {
-                    warnings.add(AppConfig.WARNING_THUMBNAIL_FORCES_EXIF_STRIP);
-                    AppLogger.warn("Thumbnail-only removal forced full EXIF block strip");
-                }
-                return; // Skip — do not write to output
+        if (id.startsWith(AppConfig.JPEG_EXIF_IDENTIFIER) && shouldStripApp1Exif(options)) {
+            if (options.removeThumbnail() && !options.removeExif()) {
+                warnings.add(AppConfig.WARNING_THUMBNAIL_FORCES_EXIF_STRIP);
+                AppLogger.warn("Thumbnail-only removal forced full EXIF block strip");
             }
-        } else if (id.startsWith(AppConfig.JPEG_XMP_IDENTIFIER)) {
-            if (options.removeXmp()) {
-                return; // Skip XMP APP1 segment
-            }
+            return; // Skip — do not write to output
+        } else if (id.startsWith(AppConfig.JPEG_XMP_IDENTIFIER) && options.removeXmp()) {
+            return; // Skip XMP APP1 segment
         }
 
         // Write segment unchanged
@@ -260,7 +259,7 @@ public class JpegHandler implements FormatHandler {
      * @return true if standalone
      */
     private boolean isStandaloneMarker(int marker) {
-        return (marker >= 0xD0 && marker <= 0xD7) || marker == 0x01;
+        return marker >= 0xD0 && marker <= 0xD7 || marker == 0x01;
     }
 
     /**
@@ -271,7 +270,8 @@ public class JpegHandler implements FormatHandler {
     public Map<String, String> getMetadataSummary(Path path) {
         Map<String, String> summary = new LinkedHashMap<>();
         try {
-            Metadata metadata = ImageMetadataReader.readMetadata(path.toFile());
+            Metadata metadata = ImageMetadataReader.readMetadata(
+                path.toAbsolutePath().normalize().toFile());
             for (Directory directory : metadata.getDirectories()) {
                 for (Tag tag : directory.getTags()) {
                     String key = directory.getName() + " / " + tag.getTagName();
@@ -279,7 +279,7 @@ public class JpegHandler implements FormatHandler {
                 }
             }
         } catch (ImageProcessingException | IOException e) {
-            AppLogger.warn("Could not read metadata summary for: " + path.getFileName());
+            AppLogger.warn("Could not read metadata summary for: " + AppLogger.sanitize(path.getFileName().toString()));
         }
         return summary;
     }

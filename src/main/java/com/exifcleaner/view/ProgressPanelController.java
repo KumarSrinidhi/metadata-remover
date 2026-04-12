@@ -79,6 +79,7 @@ public class ProgressPanelController {
 
     /** FXML initialize — called by FXMLLoader. */
     @FXML
+    @SuppressWarnings("PMD.UnusedPrivateMethod")
     private void initialize() {
         progressPanelRoot.setVisible(false);
         progressPanelRoot.setManaged(false);
