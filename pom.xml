@@ -16,7 +16,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>17</maven.compiler.release>
-        <javafx.version>21.0.2</javafx.version>
+        <javafx.version>26</javafx.version>
         <junit.version>5.10.1</junit.version>
         <mockito.version>5.8.0</mockito.version>
         <slf4j.version>2.0.9</slf4j.version>
