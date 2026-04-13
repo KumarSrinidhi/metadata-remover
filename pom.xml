@@ -33,7 +33,7 @@
         <jacoco-maven-plugin.version>0.8.11</jacoco-maven-plugin.version>
         <spotbugs-maven-plugin.version>4.8.3.0</spotbugs-maven-plugin.version>
         <maven-pmd-plugin.version>3.21.2</maven-pmd-plugin.version>
-        <dependency-check-maven.version>9.0.9</dependency-check-maven.version>
+        <dependency-check-maven.version>12.2.1</dependency-check-maven.version>
 
         <!-- Static analysis toggles (override via -D...=false) -->
         <spotbugs.skip>true</spotbugs.skip>
