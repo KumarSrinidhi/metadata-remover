@@ -24,7 +24,7 @@
         <pdfbox.version>3.0.2</pdfbox.version>
         <metadata-extractor.version>2.19.0</metadata-extractor.version>
         <commons-imaging.version>1.0-alpha3</commons-imaging.version>
-        <twelvemonkeys.version>3.10.1</twelvemonkeys.version>
+        <twelvemonkeys.version>3.13.1</twelvemonkeys.version>
         
         <!-- Plugin versions -->
         <maven-compiler-plugin.version>3.12.1</maven-compiler-plugin.version>
